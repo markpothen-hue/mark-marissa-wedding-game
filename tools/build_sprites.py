@@ -604,4 +604,171 @@ def balloon_raccoon(stripes, band, bob, crown=False):
 
 strip_save([balloon_raccoon('pPwP', 'Y', 0), balloon_raccoon('pPwP', 'Y', 1)], 'balloon-raccoon')
 strip_save([balloon_raccoon('vVwV', 'Y', 0, True), balloon_raccoon('vVwV', 'Y', 1, True)], 'balloon-boss')
+
+# ── The families (cameo sprites, drawn from the wedding photos) ──
+def person(o):
+    W, H = 20, 38
+    C = dict(PAL)
+    C.update({'1': o['skin'], '2': o['skin2'], 'h': o['hair'], 'J': o['main'], 'j': o['main2'],
+              'T': o.get('tie', (26, 22, 30)), 'L': o.get('legs', o['main']), 'F': o.get('shoes', (26, 22, 30)),
+              'A': o.get('accent', (218, 165, 32))})
+    g = [['.'] * W for _ in range(H)]
+    def put(x, y, c):
+        if 0 <= x < W and 0 <= y < H: g[y][x] = c
+    def row(y, a, b, c):
+        for x in range(a, b + 1): put(x, y, c)
+    # face
+    top = 2
+    spans = [(6, 13), (5, 14), (5, 14), (5, 14), (5, 14), (5, 14), (5, 14), (5, 14), (5, 14), (6, 13), (7, 12)]
+    for i, (a, b) in enumerate(spans):
+        row(top + i, a, b, '1')
+        put(a, top + i, '2'); put(b, top + i, '2')
+    put(4, top + 5, '1'); put(15, top + 5, '1'); put(4, top + 6, '2'); put(15, top + 6, '2')
+    hs = o['hairstyle']
+    if hs in ('short', 'curly', 'grey'):
+        row(1, 6, 13, 'h'); row(2, 5, 14, 'h'); row(3, 5, 14, 'h'); put(5, 4, 'h'); put(14, 4, 'h'); put(5, 5, 'h'); put(14, 5, 'h')
+        if hs == 'curly':
+            for x in (6, 8, 10, 12): put(x, 0, 'h')
+            row(1, 5, 14, 'h'); put(4, 3, 'h'); put(15, 3, 'h'); put(4, 4, 'h'); put(15, 4, 'h'); put(9, 4, 'h'); put(11, 4, 'h')
+        if hs == 'grey':
+            for x in (7, 10, 13): put(x, 2, 'g')
+    elif hs == 'bald':
+        put(8, 3, 'w'); put(9, 3, 'w')
+        put(5, 6, 'h'); put(14, 6, 'h'); put(5, 7, 'h'); put(14, 7, 'h')
+    elif hs == 'updo':
+        row(0, 8, 11, 'h'); row(1, 6, 13, 'h'); row(2, 5, 14, 'h'); row(3, 5, 8, 'h'); row(3, 11, 14, 'h')
+        for y in range(4, 10): put(4, y, 'h'); put(15, y, 'h')
+        put(5, 4, 'h'); put(14, 4, 'h'); put(16, 5, 'h'); put(16, 6, 'h')
+        put(16, 3, o.get('flower', 'P')); put(17, 4, o.get('flower', 'P'))
+    # eyes, blush, smile
+    put(7, top + 5, 'k'); put(12, top + 5, 'k'); put(7, top + 4, '2'); put(12, top + 4, '2')
+    put(6, top + 7, 'p'); put(13, top + 7, 'p')
+    row(top + 8, 8, 11, 'k'); put(9, top + 8, 'w'); put(10, top + 8, 'w'); put(7, top + 7, 'k'); put(12, top + 7, 'k')
+    if o.get('beard'):
+        for y in range(top + 7, top + 11):
+            for x in range(4, 16):
+                if g[y][x] in '12' and not (8 <= x <= 11 and y == top + 8):
+                    put(x, y, 'h')
+        put(7, top + 7, 'h'); put(12, top + 7, 'h')
+    if o.get('stache'):
+        row(top + 7, 8, 11, 'h')
+    # neck
+    row(13, 8, 11, '2')
+    kind = o['kind']
+    if kind == 'suit':
+        for y in range(14, 26): row(y, 4, 15, 'J')
+        for y in range(14, 19): row(y, 8 - (0 if y < 17 else 0), 11, 'w')
+        row(19, 9, 10, 'w')
+        put(7, 15, 'j'); put(12, 15, 'j'); put(7, 16, 'j'); put(12, 16, 'j'); put(8, 17, 'j'); put(11, 17, 'j')
+        if o.get('bow'):
+            put(8, 14, 'T'); put(11, 14, 'T'); put(9, 14, 'T'); put(10, 14, 'T'); put(8, 15, 'T'); put(11, 15, 'T')
+        else:
+            row(14, 9, 10, 'T')
+            for y in range(15, 21): row(y, 9, 10, 'T')
+        put(10, 21, 'K'); put(10, 23, 'K')
+        put(6, 16, 'p'); put(6, 17, 'm')
+        for y in range(15, 25): put(3, y, 'J'); put(16, y, 'J')
+        for y in range(15, 25): put(2, y, 'k') if y > 15 else None; put(17, y, 'k') if y > 15 else None
+        put(3, 25, '1'); put(16, 25, '1')
+        for y in range(26, 36): row(y, 5, 9, 'L'); row(y, 10, 14, 'L')
+        for y in range(27, 36): put(9, y, 'j')
+        row(36, 4, 9, 'F'); row(36, 10, 15, 'F'); row(37, 4, 9, 'k'); row(37, 10, 15, 'k')
+    elif kind == 'saree':
+        row(13, 8, 11, 'A')
+        for y in range(14, 19): row(y, 5, 14, 'J')
+        for y in range(19, 22): row(y, 6, 13, '2')
+        for y in range(22, 38):
+            w = (y - 22) // 5
+            row(y, 5 - w, 14 + w, 'J')
+        for y in range(26, 37):
+            for x in (8, 10, 12): put(x, y, 'j')
+        row(36, 3, 16, 'A'); row(37, 3, 16, 'A')
+        # pallu: drape from the left shoulder across to the right hip
+        for i in range(12):
+            for d in range(3):
+                put(5 + i - d + 1, 14 + i, 'j' if d == 1 else 'J')
+            put(5 + i + 2, 14 + i, 'A')
+        for y in range(14, 17): put(4, y, 'J'); put(15, y, 'J')
+        for y in range(17, 24): put(4, y, '1'); put(15, y, '1')
+        put(4, 21, 'A'); put(15, 21, 'A'); put(4, 22, 'A'); put(15, 22, 'A')
+    elif kind == 'lehenga':
+        row(13, 8, 11, 'A')
+        for y in range(14, 21): row(y, 5, 14, 'J')
+        for y in range(21, 38):
+            w = (y - 21) // 4
+            row(y, 5 - w, 14 + w, 'J')
+        for (x, y) in ((7, 16), (11, 15), (9, 18), (12, 19), (6, 24), (10, 26), (14, 25), (5, 30), (9, 31), (13, 32), (3, 35), (8, 35), (16, 34), (11, 36)):
+            put(x, y, 'w')
+        for i in range(10):
+            put(13 - i, 14 + i, 'j'); put(14 - i, 14 + i, 'j')
+        for y in range(14, 17): put(4, y, 'J'); put(15, y, 'J')
+        for y in range(17, 23): put(4, y, '1'); put(15, y, '1')
+        # little bouquet
+        for (x, y, c) in ((14, 21, 'P'), (15, 21, 'w'), (16, 21, 'P'), (15, 20, 'p'), (14, 22, 'e'), (16, 22, 'E'), (15, 23, 'e')):
+            put(x, y, c)
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    for y in range(H):
+        for x in range(W):
+            c = C.get(g[y][x]) if g[y][x] != '.' else None
+            if c: img.putpixel((x, y), c + (255,))
+    return img
+
+SKIN = (176, 120, 84); SKIN2 = (150, 98, 66)
+SKIN_L = (196, 140, 102); SKIN_L2 = (168, 116, 82)
+BLK = (26, 22, 30); GREY = (172, 174, 180); GREY2 = (140, 142, 150)
+TUX = (34, 32, 40); TUX2 = (60, 58, 70); SAGE = (122, 150, 96)
+ROSE = (214, 138, 140); ROSE2 = (236, 172, 170)
+FAMILY = [
+    # Marissa's family
+    dict(kind='suit', hairstyle='curly', hair=BLK, skin=SKIN, skin2=SKIN2, main=GREY, main2=GREY2, tie=SAGE, bow=True, shoes=(176, 104, 54)),
+    dict(kind='saree', hairstyle='updo', hair=BLK, skin=SKIN_L, skin2=SKIN_L2, main=ROSE, main2=ROSE2, flower='w'),
+    dict(kind='suit', hairstyle='bald', hair=(70, 62, 60), skin=SKIN, skin2=SKIN2, main=TUX, main2=TUX2, bow=True, beard=True),
+    # Mark's family
+    dict(kind='suit', hairstyle='short', hair=BLK, skin=SKIN, skin2=SKIN2, main=GREY, main2=GREY2, tie=SAGE),
+    dict(kind='suit', hairstyle='grey', hair=BLK, skin=SKIN, skin2=SKIN2, main=TUX, main2=TUX2, bow=True, stache=True),
+    dict(kind='saree', hairstyle='updo', hair=BLK, skin=SKIN, skin2=SKIN2, main=ROSE, main2=(190, 110, 115), flower='P'),
+    dict(kind='lehenga', hairstyle='updo', hair=BLK, skin=SKIN_L, skin2=SKIN_L2, main=SAGE, main2=(150, 176, 122), flower='P'),
+]
+strip_save([person(f) for f in FAMILY], 'family')
+
+# Four-tier wedding cake with burgundy calla lilies (reception finale)
+cake_rows = []
+tiers = [(8, 6), (12, 6), (16, 7), (20, 8)]
+cake = Image.new('RGBA', (26, 40), (0, 0, 0, 0))
+y = 9
+for tw, th in tiers:
+    x0 = 13 - tw // 2
+    for yy in range(th):
+        for xx in range(tw):
+            c = 'w' if yy > 0 else 'G'
+            if yy == 2 and xx % 3 == 1: c = 'G'
+            if yy == th - 1: c = 'G'
+            cake.putpixel((x0 + xx, y + yy), PAL[c] + (255,))
+    y += th
+for (xx, yy, c) in ((9, 10, 'm'), (10, 11, 'M'), (8, 16, 'm'), (16, 23, 'M'), (17, 24, 'm'), (6, 31, 'm'), (7, 32, 'M'), (10, 12, 'e'), (17, 25, 'e'), (7, 33, 'e')):
+    cake.putpixel((xx, yy), PAL[c] + (255,))
+for xx in range(10, 17):   # gold topper
+    cake.putpixel((xx, 4), PAL['Y'] + (255,))
+for (xx, yy) in ((10, 3), (12, 2), (14, 3), (16, 2), (11, 5), (15, 5), (13, 6), (13, 7), (13, 8)):
+    cake.putpixel((xx, yy), PAL['y'] + (255,))
+for xx in range(1, 25):
+    cake.putpixel((xx, 39), PAL['K'] + (255,)); cake.putpixel((xx, 38), PAL['g'] + (255,))
+save(cake, 'cake')
+
+chand = ascii_img([
+    '..........yy..........',
+    '..........yy..........',
+    '.....yyyyyYYyyyyy.....',
+    '....y.c.c.YY.c.c.y....',
+    '...yYYYYYYYYYYYYYYy...',
+    '..c.c.c.c.c.c.c.c.c.c.',
+    '..wcw.wcw.wcw.wcw.wcw.',
+    '.yYYYYYYYYYYYYYYYYYYy.',
+    '.c..c..c..cc..c..c..c.',
+    '.w..c..w..cc..w..c..w.',
+    '....w.....ww.....w....',
+    '..........cc..........',
+    '..........w...........',
+])
+save(chand, 'chandelier')
 print('sprites written to', OUT)

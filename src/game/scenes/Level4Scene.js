@@ -10,6 +10,8 @@ import {
 // Survive the raccoon squadrons, then take down the BIG RACCOON.
 
 var BOSS_AT = 42;
+// Family cameo order matches the 'family' sprite strip
+export var FAMILY = ['AARON', 'AMMA', 'APPA', 'LUKE', 'DADA', 'MAMA', 'RUTH'];
 
 export class Level4Scene extends Phaser.Scene {
   constructor() { super('Level4'); }
@@ -229,6 +231,7 @@ export class Level4Scene extends Phaser.Scene {
     }
 
     if (this.boss) this.updateBoss(dt, s);
+    this.updateFamToken(s);
 
     var prog = this.boss ? this.boss.hp / this.boss.max : this.t / BOSS_AT;
     this.hud.set(this.score, this.lives, this.boss ? 1 - prog : prog);
@@ -300,6 +303,7 @@ export class Level4Scene extends Phaser.Scene {
     this.time.delayedCall(50, function() { if (b.spr.active) b.spr.clearTint(); });
     addScore(this, 20);
     if (b.hp === Math.floor(b.max / 2)) banner(this, "HE'S ANGRY!", '#d9b3ff');
+    if (!this.famToken && !this.famUsed && b.hp <= b.max * 0.65) this.spawnFamToken();
     if (b.hp <= 0) this.bossDown();
   }
 
@@ -325,6 +329,86 @@ export class Level4Scene extends Phaser.Scene {
     addScore(this, bonus);
     this.time.delayedCall(1300, function() { banner(self, 'CAKE SAVED!', '#ffe066', 'LIVES BONUS +' + bonus); });
     this.time.delayedCall(800, function() { finishLevel(self, 3, self.score, self.lives); });
+  }
+
+  // ── FAMILY POWER: grab the gold ring and both families fly in to help ──
+  spawnFamToken() {
+    var y = Phaser.Math.Between(170, 380);
+    var ring = this.add.image(GAME_WIDTH + 30, y, 'ring').setScale(2).setDepth(10);
+    var label = this.add.text(GAME_WIDTH + 30, y - 34, 'FAMILY', { fontFamily: FONT, fontSize: '9px', color: '#ffe066', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(10);
+    this.tweens.add({ targets: ring, scale: 2.5, duration: 350, yoyo: true, repeat: -1 });
+    this.famToken = { ring: ring, label: label, x: GAME_WIDTH + 30, y: y, t: 0 };
+    if (!this.famHinted) { this.famHinted = true; banner(this, 'GRAB THE RING!', '#ffe066', 'CALL IN THE FAMILY'); }
+  }
+
+  updateFamToken(s) {
+    var f = this.famToken;
+    if (!f || this.done) return;
+    f.t += s;
+    f.x -= 110 * s;
+    var yy = f.y + Math.sin(f.t * 3) * 30;
+    f.ring.setPosition(f.x, yy);
+    f.label.setPosition(f.x, yy - 34);
+    if (Math.random() < 0.15) spark(this, f.x + Phaser.Math.Between(-16, 16), yy + Phaser.Math.Between(-16, 16));
+    if (rectsHit(this.px, this.py - 30, 44, 56, f.x, yy, 34, 34)) {
+      f.ring.destroy(); f.label.destroy(); this.famToken = null;
+      this.familyPower();
+    } else if (f.x < -40) {
+      // missed it: it comes back around
+      f.ring.destroy(); f.label.destroy(); this.famToken = null;
+      this.time.delayedCall(2500, function() { if (!this.done && !this.famUsed) this.spawnFamToken(); }, null, this);
+    }
+  }
+
+  familyPower() {
+    var self = this;
+    this.famUsed = true;
+    playSound('clear');
+    flashScreen(this, 0xffd84a, 0.5);
+    banner(this, 'FAMILY POWER!', '#ffe066', 'THE FAMILIES ARE HERE!');
+    this.enemyShots.forEach(function(e) { spark(self, e.x, e.y); e.spr.destroy(); });
+    this.enemyShots = [];
+    this.foes.slice().forEach(function(f) { self.damageFoe(f, 0); self.damageFoe(f, 0); self.damageFoe(f, 0); });
+    if (this.boss) this.boss.atk = 4200;
+    this.rig.flashHurt(3500);   // safe while the family flies by
+
+    // one long carpet carrying everyone, sweeping left to right
+    var y = 150, startX = -360;
+    var parts = [];
+    var carpet = this.add.sprite(startX, y + 8, 'carpet').play('carpet-wave').setScale(4.6, 1.6).setDepth(20);
+    parts.push({ o: carpet, dx: 0, dy: 8 });
+    FAMILY.forEach(function(name, i) {
+      var dx = -138 + i * 46;
+      var p = self.add.sprite(startX + dx, y, 'family', i).setOrigin(0.5, 1).setDepth(21);
+      var t = self.add.text(startX + dx, y - 84, name, { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(22);
+      self.tweens.add({ targets: p, scaleY: 0.94, duration: 200 + i * 20, yoyo: true, repeat: -1 });
+      parts.push({ o: p, dx: dx, dy: 0, who: true }, { o: t, dx: dx, dy: -84 });
+    });
+    var sweep = { x: startX };
+    this.tweens.add({
+      targets: sweep, x: GAME_WIDTH + 380, duration: 3600, ease: 'Sine.easeInOut',
+      onUpdate: function() {
+        var bob = Math.sin(sweep.x * 0.02) * 6;
+        parts.forEach(function(q) { q.o.setPosition(sweep.x + q.dx, y + q.dy + bob); });
+      },
+      onComplete: function() { parts.forEach(function(q) { q.o.destroy(); }); },
+    });
+    // everyone throws love at the Big Raccoon
+    var throwers = parts.filter(function(q) { return q.who; });
+    this.time.addEvent({ delay: 140, repeat: 22, callback: function() {
+      var b = self.boss;
+      if (!b || b.hp <= 0 || self.done) return;
+      var q = throwers[Phaser.Math.Between(0, throwers.length - 1)];
+      if (q.o.x < 0 || q.o.x > GAME_WIDTH) return;
+      var h = self.add.image(q.o.x, q.o.y - 40, 'heart').setDepth(23).setScale(1.3);
+      playSound('jump');
+      self.tweens.add({ targets: h, x: b.x + Phaser.Math.Between(-30, 30), y: b.y + Phaser.Math.Between(-50, 50), duration: 420, ease: 'Quad.easeIn',
+        onComplete: function() {
+          if (self.boss && self.boss.hp > 0 && !self.done) self.damageBoss(h.x, h.y);
+          burst(self, h.x, h.y, 0xffb3d9, 6);
+          h.destroy();
+        } });
+    } });
   }
 
   hurt() {

@@ -13,13 +13,13 @@ var PX = [
   'mark', 'marissa', 'heart', 'dumpling', 'cookie', 'apple', 'boulder', 'cart', 'squirrel', 'raccoon',
   'lantern', 'crate', 'bench', 'puddle', 'pinecone', 'leaf', 'ring', 'bullet', 'pebble', 'flag', 'checkpoint',
   'ledge', 'ground', 'street', 'path', 'bikeframe', 'dot', 'hud-heart', 'hud-heart-empty',
-  'courier', 'firecracker', 'lionhead', 'trashcan', 'warn', 'oneup',
+  'courier', 'firecracker', 'lionhead', 'trashcan', 'warn', 'oneup', 'cake', 'chandelier',
 ];
 var STRIPS = {
   wheel: [34, 34], carpet: [76, 20], puff: [18, 18], spark: [14, 14],
   'mark-poses': [70, 80], 'marissa-poses': [82, 80],
   'squirrel-run': [52, 36], 'raccoon-run': [44, 36], pigeon: [32, 24], lionbody: [36, 26],
-  'balloon-raccoon': [56, 80], 'balloon-boss': [56, 80],
+  'balloon-raccoon': [56, 80], 'balloon-boss': [56, 80], family: [40, 76],
 };
 
 export function preloadPx(scene) {
