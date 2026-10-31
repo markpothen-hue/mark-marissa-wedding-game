@@ -74,22 +74,23 @@ export class GuideScene extends Phaser.Scene {
     });
 
     // the two of them under the timeline
-    var mk = this.add.sprite(W / 2 - 46, 428, 'hero', 0).setOrigin(0.5, 1).setScale(0.8);
-    var ms = this.add.sprite(W / 2 + 46, 428, 'hero', 1).setOrigin(0.5, 1).setScale(0.8);
-    var lv = this.add.image(W / 2, 388, 'heart');
-    this.tweens.add({ targets: [mk, ms], y: 422, duration: 360, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    var mk = this.add.sprite(W / 2 - 40, 406, 'hero', 0).setOrigin(0.5, 1).setScale(0.62);
+    var ms = this.add.sprite(W / 2 + 40, 406, 'hero', 1).setOrigin(0.5, 1).setScale(0.62);
+    var lv = this.add.image(W / 2, 376, 'heart');
+    this.tweens.add({ targets: [mk, ms], y: 401, duration: 360, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.tweens.add({ targets: lv, scale: 1.3, duration: 400, yoyo: true, repeat: -1 });
 
-    var go = this.add.text(W / 2 - 150, H - 34, isTouch() ? 'TAP TO START' : 'PRESS SPACE TO START', {
-      fontFamily: FONT, fontSize: '11px', color: '#9be37a', stroke: '#1a1020', strokeThickness: 4,
-    }).setOrigin(0.5).setAlpha(0);
-    // short on time? jump straight to the bonus wedding level
-    var skip = this.add.text(W / 2 + 170, H - 34, isTouch() ? 'SKIP TO THE WEDDING >' : 'W: SKIP TO THE WEDDING >', {
-      fontFamily: FONT, fontSize: '9px', color: '#1a1020', backgroundColor: '#ffe066', padding: { x: 8, y: 7 },
-    }).setOrigin(0.5).setAlpha(0);
-    this.tweens.add({ targets: skip, alpha: 1, delay: 1400, duration: 300 });
-    this.tweens.add({ targets: go, alpha: 1, delay: 1400, duration: 300, onComplete: function() {
-      self.tweens.add({ targets: go, alpha: 0.3, duration: 500, yoyo: true, repeat: -1 });
+    // two big buttons (most guests are on their phones): start at level 1, or skip to the wedding
+    var verb = isTouch() ? 'TAP' : 'CLICK';
+    var btn = function(x, label, bg, fg) {
+      return self.add.text(x, H - 38, label, {
+        fontFamily: FONT, fontSize: '13px', color: fg, backgroundColor: bg, padding: { x: 14, y: 12 }, align: 'center',
+      }).setOrigin(0.5).setAlpha(0);
+    };
+    var go = btn(W / 2 - 190, verb + ' TO START', '#2a7a3a', '#ffffff');
+    var skip = btn(W / 2 + 160, verb + ' HERE TO SKIP\nTO THE WEDDING', '#ffe066', '#1a1020');
+    this.tweens.add({ targets: [go, skip], alpha: 1, delay: 1400, duration: 300, onComplete: function() {
+      self.tweens.add({ targets: skip, scale: 1.06, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     } });
 
     // input only after the cards land, so the name-entry keypress doesn't skip this screen
@@ -106,6 +107,7 @@ export class GuideScene extends Phaser.Scene {
       };
       self.input.on('pointerdown', function(p) {
         var hit = skip.getBounds().contains(p.x, p.y) || (p.x > CARDS_X3 && p.y > 90 && p.y < 90 + CH);   // the button or the BONUS card
+        // anywhere else (including the green button) starts level 1
         begin(hit);
       });
       self.input.keyboard.on('keydown', function(e) { begin(e.key === 'w' || e.key === 'W'); });
