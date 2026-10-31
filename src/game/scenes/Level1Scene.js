@@ -27,7 +27,7 @@ var MOVERS = [         // [x, y, tiles, dx, dy, ms]
   [4620, 330, 2, 0, 90, 1600],
 ];
 var SQUIRRELS = [[700, 560, 880], [2000, 1860, 2380], [3500, 2780, 3600], [5150, 4840, 5480], [5950, 5660, 6150]];
-var PIGEONS = [[1180, 250], [2660, 250], [3700, 220], [4950, 230], [6050, 240]];   // [x, perch y]
+var PIGEONS = [[2660, 250], [4950, 230], [6050, 240]];   // [x, perch y]
 var CANS = [1520, 3100, 4250, 5380];                                              // trash cans with raccoons
 var THROWERS = [[2268, 230], [4202, 235], [5268, 285]];                            // acorn squirrels on ledges
 var ONEUPS = [[2560, 300], [4700, 250]];
@@ -421,16 +421,16 @@ export class Level1Scene extends Phaser.Scene {
         s.flipX = this.body.x > s.x;
         if (Math.abs(this.body.x - s.x) < 280 && !this.done) {
           pg.state = 'coo'; pg.t = 0;
-          pg.tx = Phaser.Math.Clamp(this.body.x + this.body.body.velocity.x * 0.5, s.x - 260, s.x + 260);
+          pg.tx = Phaser.Math.Clamp(this.body.x, s.x - 260, s.x + 260);   // aims where you ARE: keep moving and it misses
           pg.shadow = this.add.ellipse(pg.tx, GY, 10, 6, 0x000000, 0.45).setDepth(3);
-          this.tweens.add({ targets: pg.shadow, scaleX: 4, scaleY: 2, duration: 650 });
+          this.tweens.add({ targets: pg.shadow, scaleX: 4, scaleY: 2, duration: 1000 });
           playSound('select');
         }
       } else if (pg.state === 'coo') {
         s.y = pg.y0 + Math.sin(pg.t * 0.05) * 2;
-        if (pg.t > 650) { pg.state = 'dive'; pg.t = 0; s.play('pigeon-flap'); s.flipX = pg.tx > s.x; pg.sx = s.x; pg.sy = s.y; }
+        if (pg.t > 1000) { pg.state = 'dive'; pg.t = 0; s.play('pigeon-flap'); s.flipX = pg.tx > s.x; pg.sx = s.x; pg.sy = s.y; }
       } else if (pg.state === 'dive') {
-        var k = Math.min(1, pg.t / 650);
+        var k = Math.min(1, pg.t / 850);
         s.x = Phaser.Math.Linear(pg.sx, pg.tx, k);
         s.y = Phaser.Math.Linear(pg.sy, GY - 22, k * k);
         if (k >= 1) { pg.state = 'leave'; pg.t = 0; if (pg.shadow) pg.shadow.destroy(); }
@@ -441,7 +441,7 @@ export class Level1Scene extends Phaser.Scene {
       }
       if ((pg.state === 'dive' || pg.state === 'leave') && !this.done && !this.dead) {
         var b = this.body.body;
-        if (rectsHit(this.body.x, this.body.y, 30, 66, s.x, s.y, 26, 18)) {
+        if (rectsHit(this.body.x, this.body.y, 30, 66, s.x, s.y, 18, 12)) {
           if ((b.velocity.y > 50 && b.bottom < s.y + 6) || this.power > 0) {
             this.stompScore(s.x, s.y, 200);
             if (pg.shadow) pg.shadow.destroy();

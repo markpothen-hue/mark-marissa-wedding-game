@@ -109,12 +109,19 @@ export class Level2Scene extends Phaser.Scene {
   }
 
   addLanterns(x, lane) {
+    // a gate planted IN its lane: posts stand on the lane, a glowing strip marks the ground
     var y = LANES[lane];
-    var parts = [this.add.rectangle(x, y - 98, 120, 3, 0x1a1020)];
+    var glow = this.add.rectangle(x, y - 3, 136, 14, 0xffd84a, 0.6);
+    glow.dd = -2;
+    var parts = [glow,
+      this.add.rectangle(x - 62, y, 6, 78, 0xd9a640).setOrigin(0.5, 1).setStrokeStyle(2, 0x1a1020),
+      this.add.rectangle(x + 62, y, 6, 78, 0xd9a640).setOrigin(0.5, 1).setStrokeStyle(2, 0x1a1020),
+      this.add.rectangle(x, y - 77, 132, 5, 0xd9a640).setStrokeStyle(2, 0x1a1020)];
+    this.tweens.add({ targets: glow, alpha: 0.25, duration: 400, yoyo: true, repeat: -1 });
     for (var i = 0; i < 3; i++) {
       var lx = x - 40 + i * 40;
-      var str = this.add.rectangle(lx, y - 97, 2, 10, 0x1a1020).setOrigin(0.5, 0);
-      var l = this.add.image(lx, y - 88, 'lantern').setOrigin(0.5, 0);
+      var str = this.add.rectangle(lx, y - 75, 2, 6, 0x1a1020).setOrigin(0.5, 0);
+      var l = this.add.image(lx, y - 70, 'lantern').setOrigin(0.5, 0);
       this.tweens.add({ targets: l, angle: 8, duration: 500 + i * 70, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       parts.push(str, l);
     }
