@@ -76,8 +76,12 @@ body.touch #pad {
   width: 44px; height: 44px; border-radius: 50%; font-size: 20px; line-height: 1;
   background: rgba(26,16,32,0.7); border: 2px solid rgba(255,255,255,0.4); color: #fff; cursor: pointer;
 }
+/* Phones, landscape: tuck it in the top-left corner (the side margin next to the game), away from the pad buttons */
 @media (orientation: landscape) {
-  body.touch #mute { right: auto; left: 50%; transform: translateX(-50%); }
+  body.touch #mute {
+    right: auto; bottom: auto; width: 36px; height: 36px; font-size: 16px; opacity: 0.75;
+    top: calc(8px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left));
+  }
 }
 
 /* Phones held upright: ask them to turn it sideways */

@@ -261,8 +261,29 @@ export function toggleMute() {
   return muted;
 }
 
+// iPhones treat Web Audio like a ringtone, so the silent switch mutes it. Asking for a "playback" session
+// (Safari 17+), and looping a silent <audio> element for older iOS, makes it play like a video does.
+if (navigator.audioSession) { try { navigator.audioSession.type = 'playback'; } catch (e) { void e; } }
+function silentLoop() {
+  try {
+    var rate = 8000, n = rate / 2, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+    var str = function(o, t) { for (var i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate, true);
+    v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, n, true);
+    for (var k = 0; k < n; k++) v.setUint8(44 + k, 128);
+    var el = document.createElement('audio');
+    el.src = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+    el.loop = true;
+    el.setAttribute('playsinline', '');
+    var p = el.play();
+    if (p && p.catch) p.catch(function() {});
+  } catch (e) { void e; }
+}
+
 function unlock() {
   if (music.unlocked) return;
+  silentLoop();
   var ac = getCtx();
   if (ac.state === 'suspended') ac.resume();
   music.unlocked = true;
