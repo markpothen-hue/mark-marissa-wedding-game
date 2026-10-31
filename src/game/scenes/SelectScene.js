@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT } from '../kit';
+import { FONT, setPad } from '../kit';
 import { gameState } from '../state';
 import { playSound } from '../audio';
 
@@ -7,6 +7,7 @@ export class SelectScene extends Phaser.Scene {
   constructor() { super('Select'); }
 
   create() {
+    setPad('hint', { text: 'TAP MARK OR MARISSA ABOVE' });
     var width = this.scale.width;
     var height = this.scale.height;
     var cx = width / 2;

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT } from '../kit';
+import { FONT, setPad, isTouch } from '../kit';
 import { gameState } from '../state';
 import { playSound } from '../audio';
 
@@ -21,6 +21,7 @@ export class LevelClearScene extends Phaser.Scene {
   }
 
   create() {
+    setPad('hint', { text: 'TAP THE GAME TO CONTINUE' });
     var width = this.scale.width;
     var height = this.scale.height;
     var cx = width / 2;
@@ -83,7 +84,7 @@ export class LevelClearScene extends Phaser.Scene {
       }).setOrigin(0.5);
     }
 
-    var tapText = this.add.text(cx, height - 40, 'PRESS ANY KEY TO CONTINUE', {
+    var tapText = this.add.text(cx, height - 40, isTouch() ? 'TAP TO CONTINUE' : 'PRESS ANY KEY TO CONTINUE', {
       fontFamily: FONT, fontSize: '8px', color: '#888888',
     }).setOrigin(0.5);
     this.tweens.add({ targets: tapText, alpha: 0, duration: 600, yoyo: true, repeat: -1 });

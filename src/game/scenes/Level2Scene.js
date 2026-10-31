@@ -39,10 +39,7 @@ export class Level2Scene extends Phaser.Scene {
     this.street = this.add.tileSprite(0, GY, GAME_WIDTH, 16, 'street').setOrigin(0).setDepth(1);
     this.rig = new Rig(this, PX_, GY, gameState.char);
     this.hud = new Hud(this, 'CHINATOWN DASH', { progress: 'PAVILION' });
-    this.controls = new Controls(this, [
-      { id: 'down', label: 'DUCK', x: 70, y: GAME_HEIGHT - 60, r: 42 },
-      { id: 'jump', label: 'JUMP', x: GAME_WIDTH - 70, y: GAME_HEIGHT - 60, r: 42 },
-    ]);
+    this.controls = new Controls(this, 'runner');
     banner(this, 'RUN!', '#ffe066', 'JUMP: SPACE / UP    DUCK: DOWN');
   }
 

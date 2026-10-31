@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
-import { FONT } from '../kit';
+import { FONT, setPad, isTouch } from '../kit';
 import { playSound } from '../audio';
 
 export class TitleScene extends Phaser.Scene {
   constructor() { super('Title'); }
 
   create() {
+    setPad('hint', { text: 'TAP THE GAME TO START' });
     var width = this.scale.width;
     var height = this.scale.height;
     var cx = width / 2;
@@ -52,7 +53,7 @@ export class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Blink text
-    var tapText = this.add.text(cx, height - 25, 'PRESS ANY KEY TO START', {
+    var tapText = this.add.text(cx, height - 25, isTouch() ? 'TAP TO START' : 'PRESS ANY KEY TO START', {
       fontFamily: FONT, fontSize: '9px',
       color: '#ffffff', stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);

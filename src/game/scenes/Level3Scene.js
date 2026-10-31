@@ -59,11 +59,7 @@ export class Level3Scene extends Phaser.Scene {
     this.rig.sprite.setDepth(11);
 
     this.hud = new Hud(this, 'CENTRAL PARK RIDE', { progress: 'FINISH' });
-    this.controls = new Controls(this, [
-      { id: 'up', label: 'UP', x: 60, y: GAME_HEIGHT - 120 },
-      { id: 'down', label: 'DN', x: 60, y: GAME_HEIGHT - 45 },
-      { id: 'jump', label: 'HOP', x: GAME_WIDTH - 70, y: GAME_HEIGHT - 60, r: 42 },
-    ]);
+    this.controls = new Controls(this, 'lanes');
     banner(this, 'RIDE!', '#ffe066', "DON'T EAT THE COOKIES");
   }
 

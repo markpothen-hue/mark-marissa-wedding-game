@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { gameState, saveState, saveLeaderboard } from './state';
 import { playSound } from './audio';
 import { GAME_WIDTH, GAME_HEIGHT } from './config';
+import { setPad, padState, takeDrag, isTouch } from '../pad';
 
 // Shared toolkit so every level animates, sounds and reads the same way.
 // One pixel density (2x), one font, one rig for the hero, one particle style.
@@ -225,42 +226,27 @@ export class Hud {
   setPower(text) { this.power.setText(text || ''); }
 }
 
-// ── Input: keyboard + on-screen buttons on touch devices ──
-// buttons: list of { id, label, x, y }  (x/y in game px)
+// ── Input: keyboard + the on-screen pad (src/pad.js) on phones ──
+// layout: 'platformer' | 'runner' | 'lanes' | 'track'
 export class Controls {
-  constructor(scene, buttons) {
+  constructor(scene, layout) {
     this.scene = scene;
-    var kb = scene.input.keyboard;
-    this.keys = kb.addKeys({
+    this.keys = scene.input.keyboard.addKeys({
       left: 'LEFT', right: 'RIGHT', up: 'UP', down: 'DOWN',
       a: 'A', d: 'D', w: 'W', s: 'S', space: 'SPACE', z: 'Z', x: 'X', shift: 'SHIFT',
     });
-    this.touch = {};
     this.prev = {};
     this.state = {};
-    scene.input.addPointer(2);
-    var self = this;
-    var isTouch = scene.sys.game.device.input.touch;
-    if (isTouch && buttons) {
-      buttons.forEach(function(b) {
-        var c = scene.add.circle(b.x, b.y, b.r || 34, 0xffffff, 0.16).setStrokeStyle(3, 0xffffff, 0.45)
-          .setScrollFactor(0).setDepth(400).setInteractive();
-        scene.add.text(b.x, b.y, b.label, { fontFamily: FONT, fontSize: '12px', color: '#ffffff' })
-          .setOrigin(0.5).setScrollFactor(0).setDepth(401).setAlpha(0.8);
-        c.on('pointerdown', function() { self.touch[b.id] = true; c.setFillStyle(0xffffff, 0.35); });
-        var up = function() { self.touch[b.id] = false; c.setFillStyle(0xffffff, 0.16); };
-        c.on('pointerup', up); c.on('pointerout', up);
-      });
-    }
+    setPad(layout || 'hint');
   }
   poll() {
-    var k = this.keys, t = this.touch, s = {};
-    s.left = k.left.isDown || k.a.isDown || !!t.left;
-    s.right = k.right.isDown || k.d.isDown || !!t.right;
-    s.up = k.up.isDown || k.w.isDown || !!t.up;
-    s.down = k.down.isDown || k.s.isDown || !!t.down;
-    s.jump = k.space.isDown || k.up.isDown || k.w.isDown || k.z.isDown || !!t.jump;
-    s.fire = k.space.isDown || k.x.isDown || k.z.isDown || !!t.fire;
+    var k = this.keys, t = padState, s = {};
+    s.left = k.left.isDown || k.a.isDown || t.left;
+    s.right = k.right.isDown || k.d.isDown || t.right;
+    s.up = k.up.isDown || k.w.isDown || t.up;
+    s.down = k.down.isDown || k.s.isDown || t.down;
+    s.jump = k.space.isDown || k.up.isDown || k.w.isDown || k.z.isDown || t.jump;
+    s.fire = k.space.isDown || k.x.isDown || k.z.isDown || t.fire;
     var out = {};
     for (var key in s) {
       out[key] = s[key];
@@ -304,4 +290,4 @@ export function rectsHit(ax, ay, aw, ah, bx, by, bw, bh) {
   return Math.abs(ax - bx) * 2 < aw + bw && Math.abs(ay - by) * 2 < ah + bh;
 }
 
-export { GAME_WIDTH, GAME_HEIGHT, playSound, gameState };
+export { GAME_WIDTH, GAME_HEIGHT, playSound, gameState, setPad, takeDrag, isTouch };

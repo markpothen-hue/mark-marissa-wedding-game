@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
   Rig, Hud, Controls, makeParallax, burst, spark, popup, banner, flashScreen,
-  finishLevel, addScore, gameOver, playSound, gameState, rectsHit, GAME_WIDTH, GAME_HEIGHT, FONT,
+  finishLevel, addScore, gameOver, playSound, gameState, rectsHit, takeDrag, isTouch, GAME_WIDTH, GAME_HEIGHT, FONT,
 } from '../kit';
 
 // LEVEL 4: "Bear Mountain Climb" — magic-carpet shooter (Cheese Quest's space level, Hudson Valley edition).
@@ -49,7 +49,7 @@ export class Level4Scene extends Phaser.Scene {
     this.carpet = this.add.sprite(0, 0, 'carpet').play('carpet-wave').setDepth(12);
     this.rig = new Rig(this, this.px, this.py, gameState.char);
     this.hud = new Hud(this, 'BEAR MOUNTAIN', { progress: 'BOSS' });
-    this.controls = new Controls(this, null);
+    this.controls = new Controls(this, 'track');
 
     // Touch: hero follows your finger and fires on its own
     this.drag = null;
@@ -61,7 +61,7 @@ export class Level4Scene extends Phaser.Scene {
     });
     this.input.on('pointerup', function() { self.drag = null; });
 
-    banner(this, 'GET READY!', '#ffe066', this.sys.game.device.input.touch ? 'DRAG TO FLY - HEARTS FIRE ON THEIR OWN' : 'ARROWS TO FLY - HOLD SPACE TO SHOOT');
+    banner(this, 'GET READY!', '#ffe066', isTouch() ? 'DRAG TO FLY - HEARTS FIRE ON THEIR OWN' : 'ARROWS TO FLY - HOLD SPACE TO SHOOT');
   }
 
   // ── Spawners ──
@@ -137,7 +137,11 @@ export class Level4Scene extends Phaser.Scene {
 
     // Fly
     var sp = 300;
+    var drag = takeDrag();
+    var padDrag = false;
     if (!this.done) {
+      this.px += drag.x * 1.6;
+      this.py += drag.y * 1.6;
       if (c.left) this.px -= sp * s;
       if (c.right) this.px += sp * s;
       if (c.up) this.py -= sp * s;
@@ -150,7 +154,7 @@ export class Level4Scene extends Phaser.Scene {
     this.rig.update(dt, this.px, this.py - 8, 'fly', 0.5);
 
     this.cool -= dt;
-    if (!this.done && this.cool <= 0 && (c.fire || this.drag)) this.fire();
+    if (!this.done && this.cool <= 0 && (c.fire || this.drag || padDrag || isTouch())) this.fire();
 
     // Player shots
     for (var i = this.shots.length - 1; i >= 0; i--) {

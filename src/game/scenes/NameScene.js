@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT } from '../kit';
+import { FONT, setPad, isTouch } from '../kit';
 import { gameState, loadState } from '../state';
 import { playSound } from '../audio';
 
@@ -55,6 +55,14 @@ export class NameScene extends Phaser.Scene {
 
     var btnZone = this.add.zone(cx - 70, 290, 140, 40).setOrigin(0).setInteractive();
     btnZone.on('pointerdown', function() { self.submitName(); });
+
+    // Phones: a real text box in the controller area opens the keyboard
+    if (isTouch()) {
+      setPad('name', {
+        onInput: function(v) { self.nameText = v.slice(0, 12); self.refreshDisplay(); },
+        onSubmit: function(v) { self.nameText = v.slice(0, 12); self.submitName(); },
+      });
+    }
 
     // Keyboard input
     this.input.keyboard.on('keydown', function(event) {

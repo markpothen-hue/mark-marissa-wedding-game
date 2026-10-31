@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
   Rig, Hud, Controls, makeParallax, burst, spark, popup, banner, flashScreen,
-  finishLevel, addScore, gameOver, playSound, gameState, GAME_WIDTH, GAME_HEIGHT, FONT,
+  finishLevel, addScore, gameOver, playSound, gameState, GAME_HEIGHT, FONT,
 } from '../kit';
 
 // LEVEL 1: "Fort Lee to Blue Angel" — hand-built side-scrolling platformer.
@@ -153,11 +153,7 @@ export class Level1Scene extends Phaser.Scene {
     this.physics.add.overlap(this.body, this.enemies, this.touchEnemy, null, this);
 
     this.hud = new Hud(this, 'FORT LEE TO BLUE ANGEL', { progress: 'BLUE ANGEL' });
-    this.controls = new Controls(this, [
-      { id: 'left', label: '<', x: 60, y: GAME_HEIGHT - 60 },
-      { id: 'right', label: '>', x: 150, y: GAME_HEIGHT - 60 },
-      { id: 'jump', label: 'JUMP', x: GAME_WIDTH - 70, y: GAME_HEIGHT - 60, r: 42 },
-    ]);
+    this.controls = new Controls(this, 'platformer');
     banner(this, 'GO!', '#ffe066', gameState.char === 'marissa' ? 'MARISSA CAN DOUBLE JUMP' : 'MARK RUNS FAST');
   }
 

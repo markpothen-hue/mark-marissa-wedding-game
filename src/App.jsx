@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import { gameConfig } from './game/config';
+import { initPad } from './pad';
 
 function App() {
   var gameRef = useRef(null);
 
   useEffect(function() {
     if (gameRef.current) return;
+    initPad();
     gameRef.current = new Phaser.Game(gameConfig);
     window.__game = gameRef.current;
     return function() {
@@ -18,13 +20,9 @@ function App() {
   }, []);
 
   return (
-    <div style={{
-      width: '100vw', height: '100vh',
-      background: '#1a1a2e',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      overflow: 'hidden',
-    }}>
+    <div id="app">
       <div id="game-container" />
+      <div id="pad" />
     </div>
   );
 }

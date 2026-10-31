@@ -1,3 +1,70 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #1a1a2e; overflow: hidden; }
-#root { width: 100vw; height: 100vh; }
+html, body { background: #1a1020; overflow: hidden; height: 100%; overscroll-behavior: none; }
+body {
+  position: fixed; inset: 0;
+  touch-action: none; -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+}
+#root { position: fixed; inset: 0; }
+
+/* Desktop: the game fills the window */
+#app { position: absolute; inset: 0; display: flex; flex-direction: column; }
+#game-container { flex: 1; min-height: 0; width: 100%; }
+#pad { display: none; }
+
+/* Phones, portrait: game on top, controller underneath (Game Boy style) */
+body.touch #game-container { flex: none; width: 100%; aspect-ratio: 8 / 5; margin-top: env(safe-area-inset-top); }
+body.touch #pad {
+  display: flex; flex: 1; min-height: 0; position: relative;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  font-family: "Press Start 2P", monospace; color: #fff;
+  background: linear-gradient(#2a1838, #1a1020);
+  border-top: 4px solid #3a2450;
+}
+
+/* Phones, landscape: game fills the visible height, buttons float in the corners */
+@media (orientation: landscape) {
+  body.touch #game-container { flex: 1; aspect-ratio: auto; margin-top: 0; }
+  body.touch #pad { position: absolute; inset: 0; background: none; border: 0; pointer-events: none; padding: 12px calc(12px + env(safe-area-inset-right)) 12px calc(12px + env(safe-area-inset-left)); }
+  body.touch #pad .pad-btn, body.touch #pad .pad-track, body.touch #pad input, body.touch #pad button { pointer-events: auto; }
+  body.touch #pad .pad-btn { width: 76px; height: 76px; background: rgba(255,255,255,0.14); }
+  body.touch #pad.pad-hint, body.touch #pad.pad-trackmode .hint { display: none; }
+  body.touch #pad.pad-trackmode .pad-track { background: none; border: 0; }
+  body.touch #pad.pad-name { background: rgba(26,16,32,0.92); pointer-events: auto; }
+}
+
+#pad.pad-buttons { justify-content: space-between; align-items: flex-end; }
+@media (orientation: portrait) { #pad.pad-buttons { align-items: center; } }
+.pad-group { display: flex; gap: 14px; align-items: center; }
+.pad-group.stack { flex-direction: column; }
+.pad-btn {
+  width: 96px; height: 96px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: #fff;
+  background: rgba(255,255,255,0.10); border: 3px solid rgba(255,255,255,0.45);
+  box-shadow: 0 6px 0 rgba(0,0,0,0.35);
+  transition: transform 40ms, background 40ms;
+}
+.pad-btn.word { font-size: 13px; }
+.pad-group.right .pad-btn { width: 116px; height: 116px; background: rgba(255,224,102,0.18); border-color: #ffe066; }
+.pad-btn.on { transform: translateY(4px) scale(0.96); background: rgba(255,255,255,0.35); box-shadow: 0 2px 0 rgba(0,0,0,0.35); }
+
+#pad.pad-hint, #pad.pad-trackmode { align-items: center; justify-content: center; }
+.hint { font-size: 11px; line-height: 1.8; text-align: center; color: #d9c8ff; }
+.hint.small { font-size: 8px; color: #9a88bb; margin-top: 8px; }
+.pad-track {
+  width: 100%; height: 100%; border-radius: 18px;
+  border: 3px dashed rgba(217,200,255,0.4); background: rgba(255,255,255,0.04);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+
+#pad.pad-name { flex-direction: column; align-items: center; justify-content: flex-start; gap: 14px; padding-top: 24px; }
+#pad.pad-name input {
+  width: min(320px, 90%); padding: 14px; font: 16px "Press Start 2P", monospace;
+  text-align: center; color: #fff; background: #1a1020; border: 3px solid #ffe066; border-radius: 10px;
+  -webkit-user-select: text; user-select: text;
+}
+#pad.pad-name button {
+  padding: 16px 28px; font: 13px "Press Start 2P", monospace; color: #fff;
+  background: #2a7a3a; border: 3px solid #ffe066; border-radius: 10px;
+}
