@@ -17,6 +17,7 @@ export class GuideScene extends Phaser.Scene {
 
   create() {
     var self = this;
+    this.started = false;
     var W = this.scale.width, H = this.scale.height;
     setPad('hint', { text: 'TAP TO START' });
     this.cameras.main.fadeIn(300);
@@ -31,6 +32,7 @@ export class GuideScene extends Phaser.Scene {
     this.add.text(W / 2, 62, (gameState.name || 'PLAYER') + ', RELIVE HOW MARK & MARISSA GOT HERE', { fontFamily: FONT, fontSize: '8px', color: '#d9b3ff' }).setOrigin(0.5);
 
     var x0 = (W - (CARDS.length * CW + (CARDS.length - 1) * GAP)) / 2;
+    var CARDS_X3 = x0 + 3 * (CW + GAP);
     CARDS.forEach(function(c, i) {
       var cx = x0 + i * (CW + GAP) + CW / 2, cy = 90 + CH / 2;
       var card = self.add.container(cx, cy + 30).setAlpha(0);
@@ -78,23 +80,35 @@ export class GuideScene extends Phaser.Scene {
     this.tweens.add({ targets: [mk, ms], y: 422, duration: 360, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.tweens.add({ targets: lv, scale: 1.3, duration: 400, yoyo: true, repeat: -1 });
 
-    var go = this.add.text(W / 2, H - 34, isTouch() ? 'TAP TO START' : 'PRESS ANY KEY TO START', {
-      fontFamily: FONT, fontSize: '12px', color: '#9be37a', stroke: '#1a1020', strokeThickness: 4,
+    var go = this.add.text(W / 2 - 150, H - 34, isTouch() ? 'TAP TO START' : 'PRESS SPACE TO START', {
+      fontFamily: FONT, fontSize: '11px', color: '#9be37a', stroke: '#1a1020', strokeThickness: 4,
     }).setOrigin(0.5).setAlpha(0);
+    // short on time? jump straight to the bonus wedding level
+    var skip = this.add.text(W / 2 + 170, H - 34, isTouch() ? 'SKIP TO THE WEDDING >' : 'W: SKIP TO THE WEDDING >', {
+      fontFamily: FONT, fontSize: '9px', color: '#1a1020', backgroundColor: '#ffe066', padding: { x: 8, y: 7 },
+    }).setOrigin(0.5).setAlpha(0);
+    this.tweens.add({ targets: skip, alpha: 1, delay: 1400, duration: 300 });
     this.tweens.add({ targets: go, alpha: 1, delay: 1400, duration: 300, onComplete: function() {
       self.tweens.add({ targets: go, alpha: 0.3, duration: 500, yoyo: true, repeat: -1 });
     } });
 
     // input only after the cards land, so the name-entry keypress doesn't skip this screen
     this.time.delayedCall(1200, function() {
-      var start = function() {
+      var begin = function(toWedding) {
         if (self.started) return;
         self.started = true;
         playSound('select');
-        self.scene.start('GetReady', { levelIndex: 0 });
+        self.cameras.main.fadeOut(250);
+        self.cameras.main.once('camerafadeoutcomplete', function() {
+          if (toWedding) self.scene.start('Wedding');
+          else self.scene.start('GetReady', { levelIndex: 0 });
+        });
       };
-      self.input.once('pointerdown', start);
-      self.input.keyboard.once('keydown', start);
+      self.input.on('pointerdown', function(p) {
+        var hit = skip.getBounds().contains(p.x, p.y) || (p.x > CARDS_X3 && p.y > 90 && p.y < 90 + CH);   // the button or the BONUS card
+        begin(hit);
+      });
+      self.input.keyboard.on('keydown', function(e) { begin(e.key === 'w' || e.key === 'W'); });
     });
   }
 
