@@ -731,6 +731,40 @@ FAMILY = [
 ]
 strip_save([person(f) for f in FAMILY], 'family')
 
+# Generated family art (tools/gen_family.py) replaces the hand-placed fallback above when present
+FAM_DIR = os.path.join(ROOT, 'art', 'family')
+FAM_ORDER = [('aaron', 40), ('amma', 37), ('appa', 41), ('luke', 40), ('dada', 40), ('mama', 37), ('ruth', 37)]
+def key_magenta(path):
+    im = Image.open(path).convert('RGBA')
+    W, H = im.size
+    px = im.load()
+    def bg(c):
+        r, g, b, a = c
+        return r > 90 and b > 0.4 * r and g < 0.4 * r and b - g > 50
+    seen = bytearray(W * H)
+    stack = [(x, y) for x in range(W) for y in (0, H - 1)] + [(x, y) for y in range(H) for x in (0, W - 1)]
+    while stack:
+        x, y = stack.pop()
+        i = y * W + x
+        if seen[i]: continue
+        seen[i] = 1
+        if not bg(px[x, y]): continue
+        px[x, y] = (0, 0, 0, 0)
+        if x > 0: stack.append((x - 1, y))
+        if x < W - 1: stack.append((x + 1, y))
+        if y > 0: stack.append((x, y - 1))
+        if y < H - 1: stack.append((x, y + 1))
+    return im
+if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in FAM_ORDER):
+    frames = [pixelate(key_magenta(os.path.join(FAM_DIR, n + '.png')), h) for n, h in FAM_ORDER]
+    FW, FH = 24, max(f.height for f in frames)   # fixed frame width so the strip size never drifts
+    padded = []
+    for f in frames:
+        c = Image.new('RGBA', (FW, FH), (0, 0, 0, 0))
+        c.paste(f, ((FW - f.width) // 2, FH - f.height))
+        padded.append(c)
+    strip_save(padded, 'family')
+
 # Four-tier wedding cake with burgundy calla lilies (reception finale)
 cake_rows = []
 tiers = [(8, 6), (12, 6), (16, 7), (20, 8)]
