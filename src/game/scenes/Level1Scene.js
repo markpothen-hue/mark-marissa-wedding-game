@@ -8,7 +8,8 @@ import {
 // LEVEL 1: "Fort Lee to Blue Angel" — hand-built side-scrolling platformer.
 // Every surface you can stand on is drawn. Stomp squirrels and boulders, ride the
 // moving ledges, grab the ring for a LOVE POWER UP, slide down the flag.
-// Playing as Marissa, a microphone shows up too: she SINGS and clears every enemy on screen.
+// Playing as Marissa, two extras show up: a microphone (she SINGS and clears every enemy on screen)
+// and a BLACK BELT (karate-chop anything you touch, and jump in mid-air for a flying kick).
 
 var GY = 430;          // top of the sidewalk
 var LEN = 6600;        // level length
@@ -35,6 +36,7 @@ var ONEUPS = [[2560, 300], [4700, 250]];
 var BOULDERS = [[1100, 1650], [2900, 3560], [4900, 5460], [5700, 6150]]; // [trigger x, spawn x]
 var RINGS = [[1410, 220], [4190, 180]];
 var MICS = [[3300, 380], [5680, 380]];   // Marissa only
+var BELTS = [[2300, 380], [4300, 380]];  // Marissa only
 var CHECKPOINT = 3000;
 var FLAG_X = 6300;
 
@@ -50,6 +52,9 @@ export class Level1Scene extends Phaser.Scene {
     this.buffer = 0;
     this.airJumps = 0;
     this.power = 0;
+    this.belt = 0;
+    this.kick = 0;
+    this.kicked = false;
     this.spawnX = getCheckpoint(0) || 100;
     this.chain = 0;
     this.pigeons = [];
@@ -128,8 +133,15 @@ export class Level1Scene extends Phaser.Scene {
 
     // Microphones (Marissa's SING power)
     this.makeMic();
+    this.makeBelt();
     this.mics = this.physics.add.group({ allowGravity: false });
+    this.belts = this.physics.add.group({ allowGravity: false });
     if (gameState.char === 'marissa') {
+      BELTS.forEach(function(m) {
+        var bt = self.belts.create(m[0], m[1], 'blackbelt');
+        self.tweens.add({ targets: bt, y: m[1] - 10, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        self.time.addEvent({ delay: 450, loop: true, callback: function() { if (bt.active) spark(self, bt.x + Phaser.Math.Between(-14, 14), bt.y + Phaser.Math.Between(-8, 8)); } });
+      });
       MICS.forEach(function(m) {
         var mic = self.mics.create(m[0], m[1], 'mic');
         self.tweens.add({ targets: mic, y: m[1] - 10, angle: 10, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -196,6 +208,7 @@ export class Level1Scene extends Phaser.Scene {
     this.body.setCollideWorldBounds(true);
     this.body.setMaxVelocity(400, 900);
     this.rig = new Rig(this, this.body.x, this.body.y, gameState.char);
+    this.beltIcon = this.add.image(0, 0, 'blackbelt').setScale(0.7).setDepth(30).setVisible(false);
     this.cameras.main.startFollow(this.body, true, 0.12, 0.12, 0, 60);
     this.cameras.main.setDeadzone(60, 120);
 
@@ -206,6 +219,7 @@ export class Level1Scene extends Phaser.Scene {
     this.physics.add.overlap(this.body, this.hearts, this.grabHeart, null, this);
     this.physics.add.overlap(this.body, this.rings, this.grabRing, null, this);
     this.physics.add.overlap(this.body, this.mics, this.grabMic, null, this);
+    this.physics.add.overlap(this.body, this.belts, this.grabBelt, null, this);
     this.physics.add.overlap(this.body, this.enemies, this.touchEnemy, null, this);
     this.physics.add.collider(this.acorns, this.solids, function(a) { puffOut(self, a); });
     this.physics.add.overlap(this.body, this.acorns, function(p, a) {
@@ -259,15 +273,24 @@ export class Level1Scene extends Phaser.Scene {
     else if (c.left) { b.setAccelerationX(-accel); this.rig.facing = -1; }
     else { b.setAccelerationX(0); b.setDragX(onGround ? 2200 : 500); }
     if (c.left || c.right) b.setDragX(0);
-    b.velocity.x = Phaser.Math.Clamp(b.velocity.x, -maxV, maxV);
+    if (this.kick > 0) this.kick -= dt;
+    else b.velocity.x = Phaser.Math.Clamp(b.velocity.x, -maxV, maxV);
 
     // Coyote time + jump buffer + variable jump height
     this.coyote = onGround ? 100 : this.coyote - dt;
     this.buffer = c.jumpHit ? 120 : this.buffer - dt;
-    if (onGround) this.airJumps = gameState.char === 'marissa' ? 1 : 0;
+    if (onGround) { this.airJumps = gameState.char === 'marissa' ? 1 : 0; this.kicked = false; }
     if (this.buffer > 0 && this.coyote > 0) {
       b.setVelocityY(-640); this.buffer = 0; this.coyote = 0;
       playSound('jump');
+    } else if (c.jumpHit && this.belt > 0 && this.airJumps === 0 && !onGround && !this.kicked) {
+      // BLACK BELT flying kick: a burst forward that KOs whatever it hits
+      this.kicked = true;
+      this.kick = 420;
+      b.setVelocity(this.rig.facing * 620, -180);
+      this.buffer = 0;
+      playSound('shoot');
+      popup(this, this.body.x, this.body.y - 60, 'HI-YA!', '#ffffff');
     } else if (c.jumpHit && this.airJumps > 0 && !onGround) {
       b.setVelocityY(-560); this.airJumps--; this.buffer = 0;
       playSound('jump');
@@ -309,6 +332,16 @@ export class Level1Scene extends Phaser.Scene {
       if (this.power <= 0) { this.rig.sprite.clearTint(); this.hud.setPower(''); }
     }
 
+    // Black belt
+    if (this.belt > 0) {
+      this.belt -= dt;
+      if (Math.random() < 0.3) burst(this, this.body.x, this.body.y + 20, 0xffffff, 1);
+      if (this.kick > 0) burst(this, this.body.x - this.rig.facing * 20, this.body.y + 10, 0xffe066, 2);
+      if (this.power <= 0) this.hud.setPower('BLACK BELT ' + Math.ceil(this.belt / 1000));
+      if (this.belt <= 0) { this.hud.setPower(''); this.beltIcon.setVisible(false); }
+    }
+    if (this.beltIcon) this.beltIcon.setPosition(this.body.x, this.body.y + 6).setVisible(this.belt > 0);
+
     // Fell in the river
     if (this.body.y > GAME_HEIGHT + 40) this.hurt(true);
 
@@ -317,6 +350,7 @@ export class Level1Scene extends Phaser.Scene {
 
     var mode = !onGround ? (b.velocity.y < 0 ? 'rise' : 'fall') : (Math.abs(b.velocity.x) > 30 ? 'run' : 'idle');
     this.rig.update(dt, this.body.x, this.body.y + 35, mode, Math.abs(b.velocity.x) / maxV);
+    if (this.kick > 0) this.rig.sprite.rotation = this.rig.facing * 0.5;   // leaning into the kick
     this.hud.set(this.score, this.lives, this.body.x / FLAG_X);
   }
 
@@ -460,6 +494,37 @@ export class Level1Scene extends Phaser.Scene {
     });
   }
 
+  strong() { return this.power > 0 || this.belt > 0; }
+
+  chop(x, y) {
+    popup(this, x, y - 40, ['HI-YA!', 'KIAI!', 'CHOP!'][Phaser.Math.Between(0, 2)], '#ffffff');
+    burst(this, x, y, 0xffffff, 10);
+    this.cameras.main.shake(90, 0.006);
+  }
+
+  makeBelt() {
+    if (this.textures.exists('blackbelt')) return;
+    var g = this.make.graphics({ add: false });
+    g.fillStyle(0x1a1020).fillRect(0, 8, 40, 10);                         // band
+    g.fillStyle(0x3a3440).fillRect(0, 10, 40, 2);
+    g.fillStyle(0xd9a640).fillRect(30, 9, 3, 8).fillRect(35, 9, 3, 8);     // gold rank stripes
+    g.fillStyle(0x1a1020).fillRect(15, 4, 10, 16);                        // knot
+    g.fillTriangle(15, 18, 21, 18, 10, 30).fillTriangle(19, 18, 25, 18, 28, 30);
+    g.fillStyle(0x4a4450).fillRect(17, 7, 6, 3);
+    g.generateTexture('blackbelt', 40, 32);
+    g.destroy();
+  }
+
+  grabBelt(p, bt) {
+    bt.destroy();
+    this.belt = 10000;
+    this.kicked = false;
+    addScore(this, 500);
+    playSound('clear');
+    flashScreen(this, 0xffffff, 0.4);
+    banner(this, 'BLACK BELT!', '#ffffff', 'CHOP ANYTHING + TAP JUMP IN THE AIR TO KICK');
+  }
+
   // Stomps chain: bounce enemy to enemy without landing for x2, x3...
   stompScore(x, y, base) {
     this.chain++;
@@ -480,7 +545,8 @@ export class Level1Scene extends Phaser.Scene {
     if (this.done || this.dead || !e.body || !e.body.enable) return;
     var b = this.body.body;
     var stomp = b.velocity.y > 50 && b.bottom - e.body.top < 22;
-    if (stomp || this.power > 0) {
+    if (stomp || this.strong()) {
+      if (!stomp && this.belt > 0) this.chop(e.x, e.y);
       this.stompScore(e.x, e.y, e.kind === 'boulder' ? 200 : 150);
       defeat(this, e, e.kind === 'boulder' ? 0x9a8a7a : 0xc77a3a);
       if (stomp) this.bounce();
@@ -522,11 +588,11 @@ export class Level1Scene extends Phaser.Scene {
       if ((pg.state === 'dive' || pg.state === 'leave') && !this.done && !this.dead) {
         var b = this.body.body;
         if (rectsHit(this.body.x, this.body.y, 30, 66, s.x, s.y, 18, 12)) {
-          if ((b.velocity.y > 50 && b.bottom < s.y + 6) || this.power > 0) {
+          if ((b.velocity.y > 50 && b.bottom < s.y + 6) || this.strong()) {
             this.stompScore(s.x, s.y, 200);
             if (pg.shadow) pg.shadow.destroy();
             defeat(this, s, 0xbfbfcf);
-            if (this.power <= 0) this.bounce();
+            if (!this.strong()) this.bounce();
           } else if (this.rig.hurt <= 0) {
             this.hurt(false, s.x);
           }
@@ -548,11 +614,11 @@ export class Level1Scene extends Phaser.Scene {
       if (c.up && !this.done && !this.dead) {
         var b = this.body.body;
         if (rectsHit(this.body.x, this.body.y, 30, 66, c.x, c.rc.y - 18, 34, 30)) {
-          if ((b.velocity.y > 0 && b.bottom < c.rc.y - 18) || this.power > 0) {
+          if ((b.velocity.y > 0 && b.bottom < c.rc.y - 18) || this.strong()) {
             c.alive = false;
             this.stompScore(c.x, c.rc.y - 20, 250);
             defeat(this, c.rc, 0x9a9aa8);
-            if (this.power <= 0) this.bounce();
+            if (!this.strong()) this.bounce();
           } else if (this.rig.hurt <= 0) {
             this.hurt(false, c.x);
           }

@@ -16,6 +16,7 @@ var LEVEL_SUBTITLES = [
   "BIKE: HIT RAMPS, GRAB TURBO, NO COOKIES",
   'SHOOTER: SAVE THE WEDDING CAKE',
 ];
+var CHAPTERS = ['OUR FIRST DATE', '', 'THE NYC TRIP', 'THE MOUNTAIN HIKE'];
 var SCENE_KEYS = ['Level1', 'Level2', 'Level3', 'Level4'];
 var BG_KEYS = ['bg-level1', 'bg-level2', 'bg-level3', 'bg-level4'];
 
@@ -50,7 +51,7 @@ export class GetReadyScene extends Phaser.Scene {
     overlay.fillRect(0, 0, width, height);
 
     // Level number
-    this.add.text(cx, cy - 80, 'LEVEL ' + [1, 0, 2, 3][idx], {
+    this.add.text(cx, cy - 80, 'LEVEL ' + [1, 0, 2, 3][idx] + ': ' + CHAPTERS[idx], {
       fontFamily: FONT, fontSize: '9px', color: '#dddddd',
     }).setOrigin(0.5);
 

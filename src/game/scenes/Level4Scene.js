@@ -7,14 +7,10 @@ import {
 
 // LEVEL 4: "Bear Mountain Climb" — magic-carpet shooter (Cheese Quest's space level, Hudson Valley edition).
 // Fly anywhere, hold SPACE to throw hearts. Apples upgrade your shot.
-// Survive the raccoon squadrons and Rufus + Daffy (the pups, in their own hot-air
-// balloons, lobbing tennis balls and sneakers), then take down the BIG RACCOON.
+// Survive the honking goose squadrons, then the final boss: Rufus + Daffy, who stole the
+// wedding cake and turned it into a hot-air balloon. Tennis balls, sneakers, frosting.
 
 var BOSS_AT = 33;
-var DOGS = [
-  { name: 'RUFUS', key: 'dog-rufus', anim: 'rufus-bob', flip: true, homeX: 560, baseY: 190, hp: 16, atk: 900 },
-  { name: 'DAFFY', key: 'dog-daffy', anim: 'daffy-bob', flip: false, homeX: 690, baseY: 330, hp: 20, atk: 1400 },
-];
 // Family cameo order matches the 'family' sprite strip
 export var FAMILY = ['AARON', 'AMMA', 'APPA', 'LUKE', 'DADA', 'MAMA', 'RUTH'];
 
@@ -36,11 +32,10 @@ export class Level4Scene extends Phaser.Scene {
     this.enemyShots = [];
     this.pickups = [];
     this.boss = null;
-    this.dogs = null;
     this.script = [
       [1, 'line', 140], [1.8, 'line', 360], [3.2, 'throwers'], [4.5, 'rain', 7], [6, 'vee'],
       [7.5, 'line', 250], [8.5, 'apple', 220], [9.5, 'throwers'], [10.5, 'rain', 6], [12, 'vee'],
-      [13, 'line', 150], [13.4, 'line', 350], [15, 'dogs'],
+      [13, 'line', 150], [13.4, 'line', 350],
       [16, 'apple', 300], [17, 'throwers'], [18, 'line', 200], [18.4, 'line', 330], [20, 'vee'], [21, 'rain', 9],
       [23, 'throwers'], [24, 'line', 140], [24.5, 'line', 380], [26, 'vee'], [27, 'apple', 180], [29, 'rain', 8],
       [30.5, 'throwers'], [BOSS_AT, 'boss'],
@@ -102,8 +97,6 @@ export class Level4Scene extends Phaser.Scene {
       } else if (e[1] === 'apple') {
         var a = this.add.image(GAME_WIDTH + 30, e[2], 'apple').setDepth(8);
         this.pickups.push({ spr: a, x: a.x, y: e[2] });
-      } else if (e[1] === 'dogs') {
-        this.startDogs();
       } else if (e[1] === 'boss') {
         this.spawnBoss();
       }
@@ -111,8 +104,8 @@ export class Level4Scene extends Phaser.Scene {
   }
 
   addFoe(o) {
-    // raccoons ride in little hot-air balloons; pinecones are just pinecones
-    o.spr = (o.key ? this.add.image(o.x, o.y, o.key) : this.add.sprite(o.x, o.y, 'balloon-raccoon').play({ key: 'balloon-bob', startFrame: Phaser.Math.Between(0, 1) })).setDepth(8);
+    // Canada geese flap in formation; pinecones and tennis balls are just things falling
+    o.spr = (o.key ? this.add.image(o.x, o.y, o.key) : this.add.sprite(o.x, o.y, 'goose').play({ key: 'goose-flap', startFrame: Phaser.Math.Between(0, 1) })).setDepth(8);
     o.baseY = o.y;
     o.age = 0;
     o.pts = o.pts || 150;
@@ -126,11 +119,11 @@ export class Level4Scene extends Phaser.Scene {
     this.boss = { spr: b, hp: 90, max: 90, phase: 0, t: 0, atk: 1200, x: GAME_WIDTH + 120, y: 250 };
     flashScreen(this, 0x7a3cff, 0.4);
     playMusic('boss');
-    banner(this, 'BIG RACCOON!', '#d9b3ff', 'HE STOLE THE WEDDING CAKE');
-    playSound('die');
+    banner(this, 'RUFUS & DAFFY!', '#ffe066', 'THEY STOLE THE WEDDING CAKE!');
+    playSound('clear');
     this.bossBarBg = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 18, 404, 14, 0x1a1020).setDepth(300);
     this.bossBar = this.add.rectangle(GAME_WIDTH / 2 - 200, GAME_HEIGHT - 18, 400, 10, 0xb98cff).setOrigin(0, 0.5).setDepth(301);
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 36, 'BIG RACCOON', { fontFamily: FONT, fontSize: '9px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(301);
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 36, 'RUFUS & DAFFY', { fontFamily: FONT, fontSize: '9px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(301);
   }
 
   fire() {
@@ -149,7 +142,7 @@ export class Level4Scene extends Phaser.Scene {
     var s = dt / 1000;
     this.bg.tilePositionX += 60 * s;
     if (this.dead) { this.rig.update(dt, this.px, this.py, 'fall', 0); return; }
-    if (!this.done && !this.dogs) this.t += s;   // the script waits while the pups are up
+    if (!this.done) this.t += s;
     this.runScript();
 
     // Fly
@@ -187,12 +180,6 @@ export class Level4Scene extends Phaser.Scene {
         if (!gone && this.boss && this.boss.hp > 0 && rectsHit(sh.x, sh.y, 12, 12, this.boss.x, this.boss.y, 120, 180)) {
           this.damageBoss(sh.x, sh.y); gone = true;
         }
-        if (!gone && this.dogs) {
-          for (var dg = 0; dg < this.dogs.length; dg++) {
-            var dd = this.dogs[dg];
-            if (dd.hp > 0 && rectsHit(sh.x, sh.y, 12, 12, dd.x, dd.y, 92, 124)) { this.damageDog(dd); gone = true; break; }
-          }
-        }
       }
       if (gone) { sh.spr.destroy(); this.shots.splice(i, 1); }
     }
@@ -205,14 +192,15 @@ export class Level4Scene extends Phaser.Scene {
       else o.x += o.vx * s;
       o.y = o.vy ? o.y + o.vy * s : o.baseY + (o.amp ? Math.sin(o.age * o.freq + (o.ph || 0)) * o.amp : 0);
       if (o.spin) o.spr.rotation += s * 4;
-      else o.spr.rotation = Math.sin(o.age * 3) * 0.08;   // gentle balloon sway
+      else o.spr.rotation = Math.sin(o.age * 3) * 0.06;
       o.spr.setPosition(o.x, o.y);
       if (o.throws && !this.done) {
         o.throwT -= dt;
         if (o.throwT <= 0 && o.x < GAME_WIDTH - 20) {
           o.throwT = 1500;
           var tx = this.px - o.x, ty = (this.py - 30) - o.y, tl = Math.hypot(tx, ty) || 1;
-          this.enemyShot(o.x - 20, o.y, 0, 0, tx / tl * 240, ty / tl * 240);
+          this.enemyShot(o.x - 30, o.y - 6, 0, 0, tx / tl * 240, ty / tl * 240, 'feather');
+          if (Math.random() < 0.35) popup(this, o.x, o.y - 40, 'HONK!', '#ffffff');
         }
       }
       if (o.x < -60 || o.y > GAME_HEIGHT + 40) { o.spr.destroy(); this.foes.splice(k, 1); continue; }
@@ -251,7 +239,6 @@ export class Level4Scene extends Phaser.Scene {
       }
     }
 
-    if (this.dogs) this.updateDogs(dt, s);
     if (this.boss) this.updateBoss(dt, s);
     this.updateFamToken(s);
 
@@ -275,8 +262,9 @@ export class Level4Scene extends Phaser.Scene {
       var angry = b.hp < b.max / 2;
       b.phase = (b.phase + 1) % 4;
       if (b.phase === 0) {
+        // Daffy: slobbery sneakers in a fan
         var fan = angry ? 3 : 2;
-        for (var i = -fan; i <= fan; i++) this.enemyShot(b.x - 50, b.y + 10, 280, i * 60, null, null, 'frosting');
+        for (var i = -fan; i <= fan; i++) this.enemyShot(b.x - 30, b.y + 50, 280, i * 60, null, null, 'sneaker');
       } else if (b.phase === 3) {
         // frosting ring: everything at once, find the gap
         var gapA = Math.random() * Math.PI * 2;
@@ -289,14 +277,16 @@ export class Level4Scene extends Phaser.Scene {
         var self = this;
         for (var r = 0; r < (angry ? 7 : 5); r++) {
           this.time.delayedCall(r * 260, function() {
-            self.addFoe({ x: Phaser.Math.Between(120, GAME_WIDTH - 200), y: -20, vx: -30, vy: 260, key: 'pinecone', hp: 1, pts: 50, spin: true });
+            self.addFoe({ x: Phaser.Math.Between(120, GAME_WIDTH - 200), y: -20, vx: -30, vy: 260, key: 'tennisball', hp: 1, pts: 50, spin: true });
           });
         }
       } else {
-        var dx = this.px - b.x, dy = (this.py - 30) - b.y, len = Math.hypot(dx, dy) || 1;
-        for (var k = 0; k < (angry ? 3 : 2); k++) {
-          this.time.delayedCall(k * 180, function() {
-            if (this.boss && this.boss.hp > 0) this.enemyShot(this.boss.x - 50, this.boss.y + 10, 0, 0, dx / len * 340, dy / len * 340, 'frosting');
+        // Rufus: tennis balls lobbed in arcs that drop onto you
+        for (var k = 0; k < (angry ? 4 : 3); k++) {
+          this.time.delayedCall(k * 200, function() {
+            if (!this.boss || this.boss.hp <= 0 || this.done) return;
+            var tt = 1.0 + Math.random() * 0.3, ox = this.boss.x - 40, oy = this.boss.y + 40;
+            this.enemyShot(ox, oy, 0, 0, (this.px - ox) / tt, ((this.py - 30 - oy) - 0.5 * 420 * tt * tt) / tt, 'tennisball', 420);
           }, null, this);
         }
       }
@@ -329,6 +319,13 @@ export class Level4Scene extends Phaser.Scene {
       g.fillStyle(0x8fd3ff).fillCircle(25, 17, 2).fillCircle(21, 19, 1.5);   // slobber
       g.generateTexture('sneaker', 30, 22); g.destroy();
     }
+    if (!this.textures.exists('feather')) {
+      g = this.make.graphics({ add: false });
+      g.fillStyle(0x1a1020).fillEllipse(10, 6, 20, 10);
+      g.fillStyle(0xf3ead8).fillEllipse(10, 6, 16, 6);
+      g.lineStyle(1, 0x8a7a6a).lineBetween(2, 6, 18, 6);
+      g.generateTexture('feather', 20, 12); g.destroy();
+    }
     if (!this.textures.exists('frosting')) {
       g = this.make.graphics({ add: false });
       g.fillStyle(0x1a1020).fillCircle(9, 9, 9);
@@ -336,84 +333,6 @@ export class Level4Scene extends Phaser.Scene {
       g.fillStyle(0xff9ec7).fillCircle(7, 7, 3);
       g.generateTexture('frosting', 18, 18); g.destroy();
     }
-  }
-
-  // ── Mid-boss: Rufus + Daffy in their own hot-air balloons ──
-  startDogs() {
-    var self = this;
-    flashScreen(this, 0xffe066, 0.35);
-    banner(this, 'RUFUS & DAFFY!', '#ffe066', 'THE PUPS JOINED THE RACCOONS?!');
-    playSound('clear');
-    this.dogs = DOGS.map(function(d, i) {
-      var spr = self.add.sprite(GAME_WIDTH + 100 + i * 80, d.baseY, d.key).play(d.anim).setFlipX(d.flip).setScale(1.35).setDepth(9);
-      var tag = self.add.text(0, 0, d.name, { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(10);
-      var bar = self.add.rectangle(0, 0, 50, 5, 0xffe066).setOrigin(0, 0.5).setDepth(10);
-      return { d: d, spr: spr, tag: tag, bar: bar, hp: d.hp, x: spr.x, y: d.baseY, t: i * 1.7, atk: 1600 + i * 700 };
-    });
-  }
-
-  updateDogs(dt, s) {
-    var alive = 0;
-    for (var i = 0; i < this.dogs.length; i++) {
-      var g = this.dogs[i];
-      if (g.hp <= 0) continue;
-      alive++;
-      g.t += s;
-      if (g.x > g.d.homeX) g.x -= 140 * s;
-      // they drift around and swap heights, so you can't camp one spot
-      g.y = g.d.baseY + Math.sin(g.t * 1.3) * 90;
-      var hx = g.d.homeX + Math.sin(g.t * 0.7) * 50;
-      if (g.x <= g.d.homeX + 2) g.x = hx;
-      g.spr.setPosition(g.x, g.y).rotation = Math.sin(g.t * 3) * 0.06;
-      g.tag.setPosition(g.x, g.y - 84);
-      g.bar.setPosition(g.x - 25, g.y - 74);
-      g.bar.width = 50 * g.hp / g.d.hp;
-      if (this.done || g.x > GAME_WIDTH - 40) continue;
-      g.atk -= dt;
-      if (g.atk <= 0) {
-        g.atk = g.d.atk;
-        var dx = this.px - g.x, dy = (this.py - 30) - g.y;
-        if (g.d.name === 'RUFUS') {
-          // two tennis balls lobbed in an arc that drops onto you
-          for (var k = 0; k < 2; k++) {
-            var tt = 1.1 + k * 0.25;
-            this.enemyShot(g.x - 30, g.y - 10, 0, 0, dx / tt, (dy - 0.5 * 420 * tt * tt) / tt, 'tennisball', 420);
-          }
-          playSound('jump');
-        } else {
-          // big slobbery sneaker straight at you, plus two off to the sides
-          for (var a = -1; a <= 1; a++) {
-            var ang = Math.atan2(dy, dx) + a * 0.32;
-            this.enemyShot(g.x - 30, g.y, 0, 0, Math.cos(ang) * 260, Math.sin(ang) * 260, 'sneaker');
-          }
-          playSound('shoot');
-        }
-        if (Math.random() < 0.3) popup(this, g.x, g.y - 100, 'WOOF!', '#ffffff');
-      }
-      if (!this.done && this.rig.hurt <= 0 && rectsHit(this.px, this.py - 30, 30, 44, g.x, g.y, 80, 108)) this.hurt();
-    }
-    if (alive === 0) {
-      this.dogs = null;
-      banner(this, 'GOOD PUPS!', '#9be37a', 'NOW GET THAT RACCOON');
-    }
-  }
-
-  damageDog(g) {
-    g.hp--;
-    g.spr.setTintFill(0xffffff);
-    this.time.delayedCall(50, function() { if (g.spr.active) g.spr.clearTint(); });
-    playSound('stomp');
-    if (g.hp > 0) return;
-    // not defeated, just won over: they float off happy, raining hearts
-    addScore(this, 1500);
-    popup(this, g.x, g.y - 80, g.d.name + ' WANTS BELLY RUBS! +1500', '#ffe066');
-    playSound('clear');
-    g.tag.destroy(); g.bar.destroy();
-    for (var h = 0; h < 8; h++) {
-      var ht = this.add.image(g.x + Phaser.Math.Between(-30, 30), g.y, 'heart').setDepth(11).setScale(0.7);
-      this.tweens.add({ targets: ht, y: ht.y - Phaser.Math.Between(80, 160), alpha: 0, delay: h * 80, duration: 900, onComplete: function(tw, tg) { tg[0].destroy(); } });
-    }
-    this.tweens.add({ targets: g.spr, y: -140, x: g.x + 60, duration: 2200, ease: 'Sine.easeIn', onComplete: function() { g.spr.destroy(); } });
   }
 
   damageFoe(o, idx, silent) {
@@ -440,7 +359,7 @@ export class Level4Scene extends Phaser.Scene {
     b.spr.setTintFill(0xffffff);
     this.time.delayedCall(50, function() { if (b.spr.active) b.spr.clearTint(); });
     addScore(this, 20);
-    if (b.hp === Math.floor(b.max / 2)) banner(this, "HE'S ANGRY!", '#d9b3ff');
+    if (b.hp === Math.floor(b.max / 2)) banner(this, 'ZOOMIES!', '#d9b3ff', 'THEY GOT THE ZOOMIES');
     if (!this.famToken && !this.famUsed && b.hp <= b.max * 0.65) this.spawnFamToken();
     if (b.hp <= 0) this.bossDown();
   }
@@ -454,15 +373,16 @@ export class Level4Scene extends Phaser.Scene {
     this.enemyShots = [];
     this.foes.forEach(function(f) { burst(self, f.x, f.y, 0x9a9aa8, 8); f.spr.destroy(); });
     this.foes = [];
-    for (var i = 0; i < 10; i++) {
-      this.time.delayedCall(i * 130, function() {
-        burst(self, b.x + Phaser.Math.Between(-70, 70), b.y + Phaser.Math.Between(-60, 60), [0xffe066, 0xffffff, 0xd9b3ff][Phaser.Math.Between(0, 2)], 18);
-        self.cameras.main.shake(100, 0.006);
-        playSound('stomp');
+    // the pups give up the cake: hearts everywhere, then they drift home for belly rubs
+    for (var i = 0; i < 16; i++) {
+      this.time.delayedCall(i * 110, function() {
+        var h = self.add.image(b.x + Phaser.Math.Between(-60, 60), b.y + Phaser.Math.Between(-40, 60), 'heart').setDepth(20);
+        self.tweens.add({ targets: h, y: h.y - Phaser.Math.Between(80, 160), alpha: 0, duration: 900, onComplete: function() { h.destroy(); } });
+        if (i % 3 === 0) playSound('coin');
       });
     }
-    this.tweens.add({ targets: b.spr, y: GAME_HEIGHT + 200, angle: 200, alpha: 0.3, delay: 1200, duration: 900, ease: 'Quad.easeIn' });
-    popup(this, b.x, b.y - 80, '+5000', '#ffffff');
+    popup(this, b.x, b.y - 110, 'GOOD PUPS! +5000', '#ffe066');
+    this.tweens.add({ targets: b.spr, y: -260, x: b.x + 80, delay: 1400, duration: 2200, ease: 'Sine.easeIn' });
     var bonus = this.lives * 500;
     addScore(this, bonus);
     this.time.delayedCall(1300, function() { banner(self, 'CAKE SAVED!', '#ffe066', 'LIVES BONUS +' + bonus); });
@@ -531,7 +451,7 @@ export class Level4Scene extends Phaser.Scene {
       },
       onComplete: function() { parts.forEach(function(q) { q.o.destroy(); }); },
     });
-    // everyone throws love at the Big Raccoon
+    // everyone throws love at Rufus + Daffy
     var throwers = parts.filter(function(q) { return q.who; });
     this.time.addEvent({ delay: 140, repeat: 22, callback: function() {
       var b = self.boss;

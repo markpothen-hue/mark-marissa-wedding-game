@@ -553,57 +553,6 @@ hud = [
 save(ascii_img(hud), 'hud-heart')
 save(ascii_img([r.replace('R', 'K').replace('w', 'K').replace('r', 'k') for r in hud]), 'hud-heart-empty')
 
-# ── Raccoons in little hot-air balloons (carpet level) ──
-def balloon_raccoon(stripes, band, bob, crown=False):
-    W, H = 28, 40
-    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    cx, cy, rx, ry = 13.5, 10, 11, 10.5
-    for y in range(22):
-        for x in range(W):
-            dx, dy = (x - cx) / rx, (y - cy) / (ry if y < cy else ry * 1.25)
-            d = dx * dx + dy * dy
-            if d <= 1:
-                img.putpixel((x, y), PAL[stripes[int((x - cx + rx) / 4.5) % len(stripes)]] + (255,))
-    for y in range(22):          # band + outline + shine
-        for x in range(W):
-            if img.getpixel((x, y))[3] and y in (13, 14):
-                img.putpixel((x, y), PAL[band] + (255,))
-    px = img.load()
-    for y in range(22):
-        for x in range(W):
-            if px[x, y][3]:
-                for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
-                    if not (0 <= nx < W and 0 <= ny < H) or not px[nx, ny][3]:
-                        img.putpixel((x, y), PAL['k'] + (255,)); break
-    for x, y in ((8, 4), (7, 5), (7, 6), (9, 4)):
-        img.putpixel((x, y), PAL['w'] + (255,))
-    # ropes down to the basket
-    for y in range(20, 29):
-        img.putpixel((9, y), PAL['b'] + (255,)); img.putpixel((18, y), PAL['b'] + (255,))
-    # cute raccoon face peeking over the rim, paws on the basket
-    face = ascii_img([
-        '.kk......kk.',
-        'kgGk....kGgk',
-        'kgGGggggGGgk',
-        '.gGGGGGGGGg.',
-        'gkkkGGGGkkkg',
-        'kkwkkGGkkwkk',
-        'gkkkGwwGkkkg',
-        '.gGGwkkwGGg.',
-        '..gGwwwwGg..',
-        '..kgggggggk.',
-    ])
-    img.alpha_composite(face, (8, 20 + bob))
-    # wicker basket in front
-    basket = ['kGGkkkkkkGGk', 'kBnBnBnBnBnk', 'kbBbBbBbBbBk', 'kBnBnBnBnBnk', 'kbBbBbBbBbBk', '.kkkkkkkkkk.']
-    img.alpha_composite(ascii_img(basket), (8, 29))
-    if crown:
-        cr = ascii_img(['.Y.Y.Y.', '.YYYYY.', 'YYrYrYY'])
-        img.alpha_composite(cr, (10, 17 + bob))
-    return img
-
-strip_save([balloon_raccoon('pPwP', 'Y', 0), balloon_raccoon('pPwP', 'Y', 1)], 'balloon-raccoon')
-strip_save([balloon_raccoon('vVwV', 'Y', 0, True), balloon_raccoon('vVwV', 'Y', 1, True)], 'balloon-boss')
 
 # ── The families (cameo sprites, drawn from the wedding photos) ──
 def person(o):
@@ -806,7 +755,7 @@ if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
                 (('fr-alb', 40), ('fr-white', 40), ('bishop', 41), ('fr-green', 40), ('fr-beard', 40))], 'clergy')
     # the couple's special dance moves (lift, dip)
     strip_save([fit(os.path.join(FAM_DIR, n + '.png'), 44, 56, 50) for n in ('couple-lift', 'couple-dip')], 'couple')
-    # Gemini art for the carpet level: plush raccoon, the Raccoon King's cake balloon, and Rufus + Daffy.
+    # Gemini art for the carpet level: Canada geese, and the final boss: Rufus + Daffy in a wedding-cake balloon.
     # Two frames each: the second sits 1px higher so the balloon-bob anims still bob.
     FOE_DIR = os.path.join(ROOT, 'art', 'foes')
     def bob2(path, h, fw, fh):
@@ -814,11 +763,21 @@ if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
         f0 = Image.new('RGBA', (fw, fh), (0, 0, 0, 0)); f0.paste(a, (0, 1))
         f1 = Image.new('RGBA', (fw, fh), (0, 0, 0, 0)); f1.paste(a, (0, 0))
         return [f0, f1]
-    if os.path.exists(os.path.join(FOE_DIR, 'raccoon.png')):
-        strip_save(bob2(os.path.join(FOE_DIR, 'raccoon.png'), 38, 36, 40), 'balloon-raccoon')
-        strip_save(bob2(os.path.join(FOE_DIR, 'boss.png'), 96, 72, 100), 'balloon-boss')
-        strip_save(bob2(os.path.join(FOE_DIR, 'rufus.png'), 50, 44, 52), 'dog-rufus')
-        strip_save(bob2(os.path.join(FOE_DIR, 'daffy.png'), 50, 44, 52), 'dog-daffy')
+    if os.path.exists(os.path.join(FOE_DIR, 'boss.png')):
+        strip_save(bob2(os.path.join(FOE_DIR, 'boss.png'), 96, 80, 100), 'balloon-boss')
+    if os.path.exists(os.path.join(FOE_DIR, 'goose-up.png')):
+        # Canada goose, wings up / wings down: one shared scale (from the wings-down body) so the flap lines up
+        gd = key_magenta(os.path.join(FOE_DIR, 'goose-down.png'))
+        bb = gd.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
+        k = 26 / (bb[3] - bb[1])
+        frames = []
+        for n in ('goose-up', 'goose-down'):
+            f = shrink(key_magenta(os.path.join(FOE_DIR, n + '.png')), k)
+            f.thumbnail((40, 40), Image.NEAREST)
+            c = Image.new('RGBA', (40, 40), (0, 0, 0, 0))
+            c.paste(f, ((40 - f.width) // 2, 40 - f.height))
+            frames.append(c)
+        strip_save(frames, 'goose')
     if os.path.exists(os.path.join(FOE_DIR, 'bottle.png')):
         # Mark's giant sticker-covered water bottle: the Central Park TURBO pickup.
         # Drop the loose sparkles around it so the crop hugs the bottle.

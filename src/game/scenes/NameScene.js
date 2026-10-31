@@ -98,7 +98,7 @@ export class NameScene extends Phaser.Scene {
     gameState.name = this.nameText || 'PLAYER';
     loadState();
     playSound('select');
-    // Skip MapScene, go straight to GetReady for level 1
-    this.scene.start('GetReady', { levelIndex: 0 });
+    // the level guide (story chapters + bonus), then level 1
+    this.scene.start('Guide');
   }
 }

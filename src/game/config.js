@@ -3,6 +3,7 @@ import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
 import { SelectScene } from './scenes/SelectScene';
 import { NameScene } from './scenes/NameScene';
+import { GuideScene } from './scenes/GuideScene';
 import { GetReadyScene } from './scenes/GetReadyScene';
 import { Level1Scene } from './scenes/Level1Scene';
 import { Level2Scene } from './scenes/Level2Scene';
@@ -38,6 +39,7 @@ export var gameConfig = {
     TitleScene,
     SelectScene,
     NameScene,
+    GuideScene,
     GetReadyScene,
     Level1Scene,
     Level2Scene,
