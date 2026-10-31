@@ -53,7 +53,9 @@ export class Level3Scene extends Phaser.Scene {
     // Bike = two spinning wheels + frame + the same hero rig on top
     this.wheelB = this.add.sprite(0, 0, 'wheel').play('wheel-spin').setDepth(12);
     this.wheelF = this.add.sprite(0, 0, 'wheel').play('wheel-spin').setDepth(12);
-    this.frame = this.add.image(0, 0, 'bikeframe').setDepth(13);
+    this.frame = this.add.image(0, 0, 'bikeframe').setOrigin(0.5, 39 / 40).setDepth(13);
+    this.crank = this.add.graphics().setDepth(14);
+    this.crankA = 0;
     this.shadow = this.add.ellipse(0, 0, 70, 10, 0x000000, 0.25).setDepth(3);
     this.rig = new Rig(this, PX_, LANES[1], gameState.char);
     this.rig.sprite.setDepth(11);
@@ -153,16 +155,26 @@ export class Level3Scene extends Phaser.Scene {
       if (pe.x < -10) pe.x += 888;
     }
 
-    // Draw the bike under the rider
+    // Draw the bike, then sit the rider on it: hips on the seat, hands on the bars
     var by = this.laneY - this.hop;
     var depth = 10 + this.lane * 3 + 1;
-    this.wheelB.setPosition(PX_ - 24, by - 17).setDepth(depth + 1);
-    this.wheelF.setPosition(PX_ + 24, by - 17).setDepth(depth + 1);
-    this.frame.setPosition(PX_, by - 17).setDepth(depth + 2).setRotation(this.rig.lean);
+    var axle = by - 17;
+    this.wheelB.setPosition(PX_ - 24, axle).setDepth(depth);
+    this.wheelF.setPosition(PX_ + 24, axle).setDepth(depth);
+    this.frame.setPosition(PX_, axle).setDepth(depth + 1).setRotation(this.rig.lean);
     this.shadow.setPosition(PX_, this.laneY - 2).setScale(1 - this.hop / 300);
-    this.rig.sprite.setDepth(depth);
     this.wheelB.anims.timeScale = this.wheelF.anims.timeScale = this.speed / 280;
-    this.rig.update(dt, PX_ - 4, by - 22, 'ride', 0.5);
+
+    // Cranks turn with the wheels; the legs swap on each half-turn
+    if (!this.done && !this.dead) this.crankA += this.speed * s * 0.03;
+    var cx = PX_ - 2, ca = Math.cos(this.crankA) * 8, sa = Math.sin(this.crankA) * 8;
+    this.crank.clear().setDepth(depth + 3);
+    this.crank.lineStyle(3, 0x1a1620).lineBetween(cx - ca, axle - sa, cx + ca, axle + sa);
+    this.crank.fillStyle(0x2a2430).fillRect(cx + ca - 4, axle + sa - 1, 8, 3).fillRect(cx - ca - 4, axle - sa - 1, 8, 3);
+    this.crank.fillStyle(0x9a9aa8).fillCircle(cx, axle, 3);
+    this.rig.pedal = Math.sin(this.crankA) > 0;
+    this.rig.sprite.setDepth(depth + 2);
+    this.rig.update(dt, PX_ - 10, by - 9, 'ride', 0.5);
 
     // Obstacles
     for (var i = this.things.length - 1; i >= 0; i--) {

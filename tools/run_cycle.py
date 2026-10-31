@@ -84,5 +84,10 @@ def pose_frames(img, split, hip_x=None, squeeze=0.72):
     crouch = legs.resize((dw, dh), Image.NEAREST)
     drop = legs.height - dh
     duck = compose(crouch, round(hip - dw / 2), h - dh, drop)
-    # lean the head forward a touch while crouched
-    return [stride, passing, mirror, passing, jump, duck]
+    # ride: seated pedal stroke — legs drawn under the hips, alternating extended / bent
+    rw = max(1, round(w * 0.6))
+    ride_ext = legs.resize((rw, legs.height), Image.NEAREST)
+    ride_a = compose(ride_ext, round(hip - rw / 2), split, 0)
+    bent = legs.transpose(Image.FLIP_LEFT_RIGHT).resize((rw, round(legs.height * 0.8)), Image.NEAREST)
+    ride_b = compose(bent, round(hip - rw / 2), split, 0)
+    return [stride, passing, mirror, passing, jump, duck, ride_a, ride_b]

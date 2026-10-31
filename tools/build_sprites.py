@@ -327,17 +327,17 @@ def line(img, a, b, col):
         img.putpixel((round(x0 + (x1 - x0) * i / n), round(y0 + (y1 - y0) * i / n)), col + (255,))
 
 
-bike = Image.new('RGBA', (41, 17), (0, 0, 0, 0))
-R, BB, S, H, F = (8, 16), (19, 16), (15, 5), (30, 5), (32, 16)
+# Taller city bike: axle row 19, seat ~12 px above it, bars up where a rider's hands are
+bike = Image.new('RGBA', (41, 20), (0, 0, 0, 0))
+R, BB, S, H, F = (8, 19), (19, 19), (14, 7), (30, 6), (32, 19)
 for a, b in [(R, BB), (R, S), (S, BB), (S, H), (H, BB), (H, F)]:
     line(bike, a, b, PAL['u'])
-for a, b in [((S[0] + 1, S[1]), (H[0] - 1, H[1]))]:
-    line(bike, (a[0], a[1] + 1), (b[0], b[1] + 1), PAL['U'])
-line(bike, (12, 3), (18, 3), PAL['k'])
-line(bike, (15, 4), (15, 4), PAL['K'])
-line(bike, (H[0], H[1]), (28, 1), PAL['g'])
-line(bike, (27, 1), (31, 1), PAL['k'])
-line(bike, (BB[0] - 2, BB[1]), (BB[0] + 2, BB[1]), PAL['K'])
+line(bike, (S[0] + 1, S[1] + 1), (H[0] - 1, H[1] + 1), PAL['U'])
+line(bike, (S[0], S[1] - 1), (S[0], S[1] - 1), PAL['K'])
+line(bike, (11, 5), (17, 5), PAL['k'])
+line(bike, (12, 4), (16, 4), PAL['k'])
+line(bike, H, (28, 2), PAL['g'])
+line(bike, (26, 1), (31, 1), PAL['k'])
 save(bike, 'bikeframe')
 
 

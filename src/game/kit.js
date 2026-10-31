@@ -88,6 +88,7 @@ export class Rig {
     this.facing = 1;
     this.mode = 'idle';
     this.lean = 0;
+    this.pedal = false;
   }
 
   land(power) {
@@ -117,7 +118,12 @@ export class Rig {
       var p2 = this.t * 0.012;
       oy = Math.sin(p2) * (mode === 'fly' ? 3 : 1.5);
       rot = this.lean;
-      frame = mode === 'ride' ? 4 : 5;   // knees up on the bike, crouched on the carpet
+      frame = 5;                          // crouched on the carpet
+      if (mode === 'ride') {              // seated, legs follow the pedals
+        frame = this.pedal ? 7 : 6;
+        oy = Math.sin(p2 * 2) * 0.8;
+        rot = this.lean + 0.14;           // lean into the handlebars
+      }
     } else if (mode === 'rise') {
       frame = 4; sy = 1.06; sx = 0.95; rot = 0.05 * this.facing;
     } else if (mode === 'fall') {
