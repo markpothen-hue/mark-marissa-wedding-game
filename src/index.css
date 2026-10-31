@@ -47,6 +47,7 @@ body.touch #pad {
 }
 .pad-btn.word { font-size: 13px; }
 .pad-group.right .pad-btn { width: 116px; height: 116px; background: rgba(255,224,102,0.18); border-color: #ffe066; }
+.pad-group.right .pad-btn[data-btn="duck"] { width: 88px; height: 88px; background: rgba(155,200,255,0.16); border-color: #9cc4ff; }
 .pad-btn.on { transform: translateY(4px) scale(0.96); background: rgba(255,255,255,0.35); box-shadow: 0 2px 0 rgba(0,0,0,0.35); }
 
 #pad.pad-hint, #pad.pad-trackmode { align-items: center; justify-content: center; }

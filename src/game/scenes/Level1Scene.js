@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { playMusic } from '../audio';
 import {
-  Rig, Hud, Controls, makeParallax, burst, spark, popup, banner, flashScreen,
-  finishLevel, addScore, gameOver, playSound, gameState, GAME_HEIGHT, FONT,
+  Rig, Hud, Controls, makeParallax, burst, spark, popup, banner, flashScreen, defeat, grabOneUp,
+  setCheckpoint, getCheckpoint, finishLevel, addScore, gameOver, playSound, gameState, rectsHit, GAME_HEIGHT, FONT,
 } from '../kit';
 
 // LEVEL 1: "Fort Lee to Blue Angel" — hand-built side-scrolling platformer.
@@ -26,8 +26,11 @@ var MOVERS = [         // [x, y, tiles, dx, dy, ms]
   [2440, 380, 3, 200, 0, 2200],
   [4620, 330, 2, 0, 90, 1600],
 ];
-var SQUIRRELS = [[700, 560, 880], [1300, 1030, 1680], [2000, 1860, 2380], [3100, 2780, 3600], [3500, 2780, 3600],
-  [4050, 3750, 4380], [5150, 4840, 5480], [5950, 5660, 6150]];
+var SQUIRRELS = [[700, 560, 880], [2000, 1860, 2380], [3500, 2780, 3600], [5150, 4840, 5480], [5950, 5660, 6150]];
+var PIGEONS = [[1180, 250], [2660, 250], [3700, 220], [4950, 230], [6050, 240]];   // [x, perch y]
+var CANS = [1520, 3100, 4250, 5380];                                              // trash cans with raccoons
+var THROWERS = [[2268, 230], [4202, 235], [5268, 285]];                            // acorn squirrels on ledges
+var ONEUPS = [[2560, 300], [4700, 250]];
 var BOULDERS = [[1100, 1650], [2900, 3560], [4900, 5460], [5700, 6150]]; // [trigger x, spawn x]
 var RINGS = [[1410, 220], [4190, 180]];
 var CHECKPOINT = 3000;
@@ -45,7 +48,10 @@ export class Level1Scene extends Phaser.Scene {
     this.buffer = 0;
     this.airJumps = 0;
     this.power = 0;
-    this.spawnX = 100;
+    this.spawnX = getCheckpoint(0) || 100;
+    this.chain = 0;
+    this.pigeons = [];
+    this.cans = [];
     this.wasGround = true;
     this.boulderTriggered = {};
   }
@@ -121,10 +127,42 @@ export class Level1Scene extends Phaser.Scene {
     // Enemies
     this.enemies = this.physics.add.group();
     SQUIRRELS.forEach(function(s) {
-      var e = self.enemies.create(s[0], GY - 20, 'squirrel');
+      var e = self.enemies.create(s[0], GY - 20, 'squirrel-run').play('squirrel-run');
       e.kind = 'squirrel'; e.minX = s[1]; e.maxX = s[2]; e.speed = 70;
       e.body.setSize(36, 30).setOffset(8, 6);
       e.setVelocityX(-e.speed).setDepth(5);
+    });
+
+    // Squirrels on ledges that lob acorns at you
+    this.acorns = this.physics.add.group();
+    THROWERS.forEach(function(t) {
+      var e = self.enemies.create(t[0], t[1] - 18, 'squirrel-run', 0);
+      e.kind = 'thrower'; e.body.setAllowGravity(false).setImmovable(true);
+      e.body.setSize(36, 30).setOffset(8, 6);
+      e.setDepth(5); e.throwT = 1200;
+    });
+
+    // Pigeons perched up high: they coo, a shadow marks the spot, then they dive
+    PIGEONS.forEach(function(pg) {
+      var spr = self.add.sprite(pg[0], pg[1], 'pigeon', 0).setDepth(6);
+      self.pigeons.push({ spr: spr, state: 'perch', t: 0, x0: pg[0], y0: pg[1] });
+    });
+
+    // Trash cans: solid to stand on; a raccoon pops out on a rhythm
+    CANS.forEach(function(x, i) {
+      var can = self.add.image(x, GY, 'trashcan').setOrigin(0.5, 1).setDepth(4);
+      var z = self.add.zone(x, GY - 17, 26, 34);
+      self.physics.add.existing(z, true);
+      self.solids.add(z);
+      var rc = self.add.sprite(x, GY - 6, 'raccoon-run', 0).setOrigin(0.5, 1).setDepth(3);
+      self.cans.push({ can: can, rc: rc, x: x, t: i * 900, up: false, alive: true });
+    });
+
+    // 1-ups
+    this.oneups = this.physics.add.group({ allowGravity: false });
+    ONEUPS.forEach(function(o) {
+      var h = self.oneups.create(o[0], o[1], 'oneup').setScale(2);
+      self.tweens.add({ targets: h, y: o[1] - 10, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     });
 
     // Checkpoint + flag + Blue Angel sign
@@ -153,6 +191,13 @@ export class Level1Scene extends Phaser.Scene {
     this.physics.add.overlap(this.body, this.hearts, this.grabHeart, null, this);
     this.physics.add.overlap(this.body, this.rings, this.grabRing, null, this);
     this.physics.add.overlap(this.body, this.enemies, this.touchEnemy, null, this);
+    this.physics.add.collider(this.acorns, this.solids, function(a) { puffOut(self, a); });
+    this.physics.add.overlap(this.body, this.acorns, function(p, a) {
+      puffOut(self, a);
+      if (self.power <= 0 && self.rig.hurt <= 0) self.hurt(false, a.x);
+    });
+    this.physics.add.overlap(this.body, this.oneups, function(p, h) { grabOneUp(self, h.x, h.y); h.destroy(); });
+    if (this.spawnX > 100) { this.cp.setAlpha(1); banner(this, 'CHECKPOINT', '#ffe066', 'PICKING UP HALFWAY'); }
 
     this.hud = new Hud(this, 'FORT LEE TO BLUE ANGEL', { progress: 'BLUE ANGEL' });
     this.controls = new Controls(this, 'platformer');
@@ -215,12 +260,16 @@ export class Level1Scene extends Phaser.Scene {
     if (!c.jump && b.velocity.y < -200) b.setVelocityY(b.velocity.y * 0.82);
 
     if (onGround && !this.wasGround && this.lastVy > 380) this.rig.land(this.lastVy / 900);
+    if (onGround) this.chain = 0;
+    this.updatePigeons(dt);
+    this.updateCans(dt);
     this.wasGround = onGround;
     this.lastVy = b.velocity.y;
 
     // Checkpoint
     if (this.spawnX < CHECKPOINT && this.body.x > CHECKPOINT) {
       this.spawnX = CHECKPOINT + 20;
+      setCheckpoint(0, this.spawnX);
       this.cp.setAlpha(1);
       burst(this, CHECKPOINT, GY - 50, 0xffe066, 14);
       popup(this, CHECKPOINT, GY - 70, 'CHECKPOINT!');
@@ -285,6 +334,19 @@ export class Level1Scene extends Phaser.Scene {
         if (e.x > e.maxX) e.setVelocityX(-e.speed);
         e.flipX = e.body.velocity.x > 0;
         e.rotation = Math.sin(e.x * 0.12) * 0.12; // scurrying wobble
+      } else if (e.kind === 'thrower') {
+        // face the player and lob an acorn when they're in range
+        var dx = this.body.x - e.x;
+        e.flipX = dx > 0;
+        e.throwT -= dt;
+        if (e.throwT <= 0 && Math.abs(dx) < 460 && Math.abs(dx) > 50 && !this.done) {
+          e.throwT = 2400;
+          e.setFrame(1);
+          this.time.delayedCall(180, function(en) { if (en.active) en.setFrame(0); }, [e]);
+          var a = this.acorns.create(e.x, e.y - 10, 'pebble').setDepth(6);
+          a.setVelocity(Phaser.Math.Clamp(dx * 1.1, -280, 280), -380);
+          a.body.setSize(10, 10);
+        }
       } else if (e.kind === 'boulder') {
         e.rotation -= dt * 0.006;
         if (e.y > GAME_HEIGHT + 60 || e.x < -60) e.destroy();
@@ -318,23 +380,105 @@ export class Level1Scene extends Phaser.Scene {
     banner(this, 'LOVE POWER UP!', '#d9b3ff', 'RUN THROUGH ANYTHING');
   }
 
+  // Stomps chain: bounce enemy to enemy without landing for x2, x3...
+  stompScore(x, y, base) {
+    this.chain++;
+    var pts = base * this.chain;
+    addScore(this, pts);
+    popup(this, x, y - 20, this.chain > 1 ? 'x' + this.chain + '  +' + pts : '+' + pts, this.chain > 1 ? '#d9b3ff' : '#ffe066');
+    this.cameras.main.shake(80, 0.004);
+    playSound('stomp');
+  }
+
+  bounce() {
+    var b = this.body.body;
+    b.setVelocityY(this.controls.state.jump ? -640 : -440);
+    this.rig.land(0.6);
+  }
+
   touchEnemy(p, e) {
-    if (this.done || this.dead) return;
+    if (this.done || this.dead || !e.body || !e.body.enable) return;
     var b = this.body.body;
     var stomp = b.velocity.y > 50 && b.bottom - e.body.top < 22;
     if (stomp || this.power > 0) {
-      var pts = e.kind === 'boulder' ? 200 : 150;
-      addScore(this, pts);
-      popup(this, e.x, e.y - 20, '+' + pts);
-      burst(this, e.x, e.y, e.kind === 'boulder' ? 0x9a8a7a : 0xc77a3a, 14);
-      this.cameras.main.shake(80, 0.004);
-      playSound('stomp');
-      e.destroy();
-      if (stomp) { b.setVelocityY(this.controls.state.jump ? -620 : -420); this.rig.land(0.6); }
+      this.stompScore(e.x, e.y, e.kind === 'boulder' ? 200 : 150);
+      defeat(this, e, e.kind === 'boulder' ? 0x9a8a7a : 0xc77a3a);
+      if (stomp) this.bounce();
       return;
     }
     if (this.rig.hurt > 0) return;
     this.hurt(false, e.x);
+  }
+
+  updatePigeons(dt) {
+    for (var i = 0; i < this.pigeons.length; i++) {
+      var pg = this.pigeons[i];
+      var s = pg.spr;
+      if (!s.active) continue;
+      pg.t += dt;
+      if (pg.state === 'perch') {
+        s.setFrame(Math.floor(pg.t / 500) % 4 === 0 ? 1 : 0);
+        s.flipX = this.body.x > s.x;
+        if (Math.abs(this.body.x - s.x) < 280 && !this.done) {
+          pg.state = 'coo'; pg.t = 0;
+          pg.tx = Phaser.Math.Clamp(this.body.x + this.body.body.velocity.x * 0.5, s.x - 260, s.x + 260);
+          pg.shadow = this.add.ellipse(pg.tx, GY, 10, 6, 0x000000, 0.45).setDepth(3);
+          this.tweens.add({ targets: pg.shadow, scaleX: 4, scaleY: 2, duration: 650 });
+          playSound('select');
+        }
+      } else if (pg.state === 'coo') {
+        s.y = pg.y0 + Math.sin(pg.t * 0.05) * 2;
+        if (pg.t > 650) { pg.state = 'dive'; pg.t = 0; s.play('pigeon-flap'); s.flipX = pg.tx > s.x; pg.sx = s.x; pg.sy = s.y; }
+      } else if (pg.state === 'dive') {
+        var k = Math.min(1, pg.t / 650);
+        s.x = Phaser.Math.Linear(pg.sx, pg.tx, k);
+        s.y = Phaser.Math.Linear(pg.sy, GY - 22, k * k);
+        if (k >= 1) { pg.state = 'leave'; pg.t = 0; if (pg.shadow) pg.shadow.destroy(); }
+      } else if (pg.state === 'leave') {
+        s.x += (s.flipX ? 1 : -1) * dt * 0.25;
+        s.y -= dt * 0.3;
+        if (s.y < -40) { s.destroy(); continue; }
+      }
+      if ((pg.state === 'dive' || pg.state === 'leave') && !this.done && !this.dead) {
+        var b = this.body.body;
+        if (rectsHit(this.body.x, this.body.y, 30, 66, s.x, s.y, 26, 18)) {
+          if ((b.velocity.y > 50 && b.bottom < s.y + 6) || this.power > 0) {
+            this.stompScore(s.x, s.y, 200);
+            if (pg.shadow) pg.shadow.destroy();
+            defeat(this, s, 0xbfbfcf);
+            if (this.power <= 0) this.bounce();
+          } else if (this.rig.hurt <= 0) {
+            this.hurt(false, s.x);
+          }
+        }
+      }
+    }
+  }
+
+  updateCans(dt) {
+    for (var i = 0; i < this.cans.length; i++) {
+      var c = this.cans[i];
+      if (!c.alive) continue;
+      c.t = (c.t + dt) % 3200;
+      // hidden 0-1500, peek 1500-1800, up 1800-3000, sink 3000-3200
+      var target = c.t < 1500 ? GY - 2 : c.t < 1800 ? GY - 14 : c.t < 3000 ? GY - 30 : GY - 2;
+      c.rc.y += (target - c.rc.y) * Math.min(1, dt / 70);
+      c.rc.flipX = this.body.x > c.x;
+      c.up = c.rc.y < GY - 24;
+      if (c.up && !this.done && !this.dead) {
+        var b = this.body.body;
+        if (rectsHit(this.body.x, this.body.y, 30, 66, c.x, c.rc.y - 18, 34, 30)) {
+          if ((b.velocity.y > 0 && b.bottom < c.rc.y - 18) || this.power > 0) {
+            c.alive = false;
+            this.stompScore(c.x, c.rc.y - 20, 250);
+            defeat(this, c.rc, 0x9a9aa8);
+            if (this.power <= 0) this.bounce();
+          } else if (this.rig.hurt <= 0) {
+            this.hurt(false, c.x);
+          }
+        }
+      }
+    }
   }
 
   hurt(fell, fromX) {
@@ -394,4 +538,10 @@ export class Level1Scene extends Phaser.Scene {
     banner(this, 'BLUE ANGEL!', '#9cc4ff', 'LIVES BONUS +' + lifeBonus);
     finishLevel(this, 0, this.score, this.lives);
   }
+}
+
+function puffOut(scene, a) {
+  if (!a.active) return;
+  burst(scene, a.x, a.y, 0x9a6a3a, 5);
+  a.destroy();
 }

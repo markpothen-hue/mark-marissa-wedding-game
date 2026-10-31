@@ -13,10 +13,12 @@ var PX = [
   'mark', 'marissa', 'heart', 'dumpling', 'cookie', 'apple', 'boulder', 'cart', 'squirrel', 'raccoon',
   'lantern', 'crate', 'bench', 'puddle', 'pinecone', 'leaf', 'ring', 'bullet', 'pebble', 'flag', 'checkpoint',
   'ledge', 'ground', 'street', 'path', 'bikeframe', 'dot', 'hud-heart', 'hud-heart-empty',
+  'courier', 'firecracker', 'lionhead', 'trashcan', 'warn', 'oneup',
 ];
 var STRIPS = {
   wheel: [34, 34], carpet: [76, 20], puff: [18, 18], spark: [14, 14],
   'mark-poses': [70, 80], 'marissa-poses': [82, 80],
+  'squirrel-run': [52, 36], 'raccoon-run': [44, 36], pigeon: [32, 24], lionbody: [36, 26],
 };
 
 export function preloadPx(scene) {
@@ -34,6 +36,10 @@ export function setupPx(scene) {
   a.create({ key: 'wheel-spin', frames: a.generateFrameNumbers('wheel', { start: 0, end: 3 }), frameRate: 16, repeat: -1 });
   a.create({ key: 'carpet-wave', frames: a.generateFrameNumbers('carpet', { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
   a.create({ key: 'puff', frames: a.generateFrameNumbers('puff', { start: 0, end: 2 }), frameRate: 14, hideOnComplete: true });
+  a.create({ key: 'squirrel-run', frames: a.generateFrameNumbers('squirrel-run', { start: 0, end: 1 }), frameRate: 8, repeat: -1 });
+  a.create({ key: 'raccoon-run', frames: a.generateFrameNumbers('raccoon-run', { start: 0, end: 1 }), frameRate: 7, repeat: -1 });
+  a.create({ key: 'pigeon-flap', frames: a.generateFrameNumbers('pigeon', { start: 0, end: 1 }), frameRate: 10, repeat: -1 });
+  a.create({ key: 'lion-walk', frames: a.generateFrameNumbers('lionbody', { start: 0, end: 1 }), frameRate: 6, repeat: -1 });
   a.create({ key: 'spark', frames: a.generateFrameNumbers('spark', { start: 0, end: 2 }), frameRate: 18, yoyo: true, hideOnComplete: true });
 }
 
@@ -203,6 +209,43 @@ export function banner(scene, text, color, sub) {
   return t;
 }
 
+// Enemy knocked out: squash flat, poof, gone (same in every level)
+export function defeat(scene, spr, tint) {
+  if (!spr || !spr.active) return;
+  if (spr.body) spr.body.enable = false;
+  if (spr.anims) spr.anims.stop();
+  burst(scene, spr.x, spr.y, tint || 0xffffff, 10);
+  scene.tweens.add({
+    targets: spr, scaleY: 0.15, scaleX: (spr.scaleX || 1) * 1.5, duration: 140, ease: 'Quad.easeIn',
+    onComplete: function() { puff(scene, spr.x, spr.y); spr.destroy(); },
+  });
+}
+
+// Blinking "!" at the screen edge: something is coming at this height
+export function warn(scene, y, ms, x) {
+  var w = scene.add.image(x || GAME_WIDTH - 24, y, 'warn').setScrollFactor(0).setDepth(250);
+  scene.tweens.add({ targets: w, alpha: 0.2, duration: 120, yoyo: true, repeat: Math.floor((ms || 900) / 240) });
+  scene.time.delayedCall(ms || 900, function() { w.destroy(); });
+  playSound('select');
+  return w;
+}
+
+// Extra life
+export function grabOneUp(scene, x, y) {
+  if (scene.lives < 3) { scene.lives++; gameState.lives = scene.lives; popup(scene, x, y - 20, '1-UP!', '#ffffff'); }
+  else { addScore(scene, 500); popup(scene, x, y - 20, '+500'); }
+  playSound('clear');
+  burst(scene, x, y, 0xffffff, 14);
+}
+
+// Halfway checkpoints survive a game over, so a retry never starts from zero
+export function setCheckpoint(level, value) { gameState.checkpoint = { level: level, value: value }; }
+export function getCheckpoint(level) {
+  var c = gameState.checkpoint;
+  return c && c.level === level ? c.value : null;
+}
+export function clearCheckpoint() { gameState.checkpoint = null; }
+
 // Purple wash used for power-ups (Cheese Quest's "LADY POWER UP!" moment)
 export function flashScreen(scene, color, alpha) {
   var r = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, color, alpha || 0.45).setOrigin(0).setScrollFactor(0).setDepth(150);
@@ -250,7 +293,7 @@ export class Controls {
     this.scene = scene;
     this.keys = scene.input.keyboard.addKeys({
       left: 'LEFT', right: 'RIGHT', up: 'UP', down: 'DOWN',
-      a: 'A', d: 'D', w: 'W', s: 'S', space: 'SPACE', z: 'Z', x: 'X', shift: 'SHIFT',
+      a: 'A', d: 'D', w: 'W', s: 'S', space: 'SPACE', z: 'Z', x: 'X', c: 'C', shift: 'SHIFT',
     });
     this.prev = {};
     this.state = {};
@@ -264,6 +307,7 @@ export class Controls {
     s.down = k.down.isDown || k.s.isDown || t.down;
     s.jump = k.space.isDown || k.up.isDown || k.w.isDown || k.z.isDown || t.jump;
     s.fire = k.space.isDown || k.x.isDown || k.z.isDown || t.fire;
+    s.duck = k.shift.isDown || k.x.isDown || k.c.isDown || t.duck;
     var out = {};
     for (var key in s) {
       out[key] = s[key];
@@ -277,6 +321,7 @@ export class Controls {
 
 // ── Level flow ──
 export function finishLevel(scene, idx, score, lives) {
+  clearCheckpoint();
   gameState.cleared[idx] = true;
   saveState();
   saveLeaderboard();
@@ -296,7 +341,7 @@ export function addScore(scene, pts) {
 
 export function gameOver(scene) {
   playSound('die');
-  banner(scene, 'OOPS!', '#ffe066', 'TRY THAT AGAIN');
+  banner(scene, 'OOPS!', '#ffe066', gameState.checkpoint ? 'BACK TO THE CHECKPOINT' : 'TRY THAT AGAIN');
   scene.time.delayedCall(1700, function() {
     gameState.lives = 3;
     scene.scene.restart();

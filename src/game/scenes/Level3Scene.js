@@ -100,7 +100,9 @@ export class Level3Scene extends Phaser.Scene {
 
   add3(kind, x, lane) {
     var y = LANES[lane];
-    var spr = this.add.image(x, y, kind).setOrigin(0.5, 1).setDepth(5 + lane * 3);
+    var spr = kind === 'squirrel'
+      ? this.add.sprite(x, y, 'squirrel-run').play('squirrel-run').setOrigin(0.5, 1).setDepth(5 + lane * 3)
+      : this.add.image(x, y, kind).setOrigin(0.5, 1).setDepth(5 + lane * 3);
     var t = { kind: kind, x: x, lane: lane, y: y, spr: spr, low: kind === 'cookie' || kind === 'puddle', w: spr.width * 0.7 };
     if (kind === 'cookie') t.spin = true;
     if (kind === 'squirrel') { t.vx = 70; t.nextHop = 600; }

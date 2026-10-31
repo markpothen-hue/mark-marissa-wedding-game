@@ -91,3 +91,17 @@ def pose_frames(img, split, hip_x=None, squeeze=0.72):
     bent = legs.transpose(Image.FLIP_LEFT_RIGHT).resize((rw, round(legs.height * 0.8)), Image.NEAREST)
     ride_b = compose(bent, round(hip - rw / 2), split, 0)
     return [stride, passing, mirror, passing, jump, duck, ride_a, ride_b]
+
+
+def critter_frames(img, split):
+    """2-frame scurry for enemies: original, then legs mirrored with the body 1px up."""
+    w, h = img.width, img.height
+    top = img.crop((0, 0, w, split))
+    legs = img.crop((0, split, w, h))
+    a = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    a.paste(img, (0, 0), img)
+    b = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    fl = legs.transpose(Image.FLIP_LEFT_RIGHT)
+    b.paste(fl, (0, split), fl)
+    b.paste(top, (0, -1), top)
+    return [a, b]

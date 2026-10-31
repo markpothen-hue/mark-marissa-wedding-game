@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { playMusic } from '../audio';
-import { FONT, setPad } from '../kit';
+import { FONT, setPad, clearCheckpoint } from '../kit';
 import { gameState, resetLives } from '../state';
 import { playSound } from '../audio';
 
@@ -37,6 +37,7 @@ export class GetReadyScene extends Phaser.Scene {
     var idx = this.levelIndex;
 
     resetLives();
+    clearCheckpoint();
 
     // Background image for the upcoming level
     var bg = this.add.image(cx, height / 2, BG_KEYS[idx]);

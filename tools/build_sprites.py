@@ -38,7 +38,7 @@ def pixelate(im, h):
 # ── Characters: the still (menus) + a pose strip [run0..run3, jump, duck] for gameplay ──
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from run_cycle import pose_frames  # noqa: E402
+from run_cycle import pose_frames, critter_frames  # noqa: E402
 
 WAIST = {'mark': 23, 'marissa': 28}   # art-pixel row where the legs start
 for who in ('mark', 'marissa'):
@@ -239,6 +239,148 @@ for y in range(18):
         c = 'd' if edge else 'n' if frame else 'n' if diag else ('b' if (y // 4) % 2 else 'B')
         crate.putpixel((x, y), PAL[c] + (255,))
 save(crate, 'crate')
+
+# ── New enemies / hazards ──
+def strip_save(frames, name):
+    save(strip(frames), name)
+    print(name, 'frame', frames[0].width * SCALE, frames[0].height * SCALE, 'x', len(frames))
+
+
+# Critter scurry frames (squirrel, raccoon)
+for name, split in (('squirrel', 12), ('raccoon', 13)):
+    base = pixelate(sheet.crop(({'squirrel': 2, 'raccoon': 3}[name] * cw, ch, ({'squirrel': 2, 'raccoon': 3}[name] + 1) * cw, 2 * ch)), 18)
+    strip_save(critter_frames(base, split), name + '-run')
+
+pigeon_body = [
+    '................',
+    '..kk............',
+    '.gGGg...........',
+    'oGkGg...........',
+    '.gGvv...........',
+    '..gvvgggg.......',
+    '..gGGGGGGgg.....',
+    '..gGGGGGGGGgg...',
+    '...gGGGGGGGgKK..',
+    '....gggggggKKKK.',
+    '......o..o......',
+    '......o..o......',
+]
+wing_up = {0: '.........gGGg...', 1: '........gGGg....', 2: '.......gGGg.....', 3: '......gGGg......', 4: '......gGg.......'}
+wing_dn = {7: '...gGKKKKKgGgKK.', 8: '....gKKKKKggKKKK', 9: '......oKKKo.....'}
+
+
+def overlay(rows, ov, shift=0):
+    out = list(rows)
+    for r, line_ in ov.items():
+        rr = r + shift
+        base_ = list(out[rr])
+        for x, c in enumerate(line_):
+            if c != '.':
+                base_[x] = c
+        out[rr] = ''.join(base_)
+    return out
+
+
+strip_save([ascii_img(overlay(pigeon_body, wing_up)), ascii_img(overlay(pigeon_body, wing_dn))], 'pigeon')
+
+save(ascii_img([
+    '.....YYYYY......',
+    '....YYYYYYY.....',
+    '...YYYYYYYYY....',
+    '...kkkkYYYYY....',
+    '...nnknnYY......',
+    '...nnnnnn..rrrrr',
+    '....nnnn...rRRRr',
+    '...EEEEEE..rRwRr',
+    '..EEEEEEEE.rRRRr',
+    '.nnEEEEEEEErrrrr',
+    '.n.EEEEEEEE.....',
+    '...EEEEEEEE.....',
+    '...EEEEEEE......',
+    '...uuuuuuu......',
+    '..uuuuuuuu......',
+    '..uuu..uuu......',
+    '.uuu....uuu.....',
+    '.uu......uu.....',
+    'kkk......kkk....',
+]), 'courier')
+
+save(ascii_img([
+    '..y...y...y...',
+    '..k...k...k...',
+    '.rRr.rRr.rRr..',
+    '.rYr.rYr.rYr..',
+    '.rRr.rRr.rRr..',
+    '.rRr.rRr.rRr..',
+    '.rrr.rrr.rrr..',
+    'kkkkkkkkkkkkk.',
+]), 'firecracker')
+
+save(ascii_img([
+    '..........YY..........',
+    '........YYrrYY........',
+    '......YYrRRRRrYY......',
+    '....wYrRRRRRRRRrYw....',
+    '...wwrRwwkRRRRRRrww...',
+    '..wwRRwkkwRRRRRRRrw...',
+    '..wRRRRwwRRRRYYRRrw...',
+    '.wRRRRRRRRRRYrrYRrw...',
+    '.wRRRRRRRRRRRYYRRRrw..',
+    'wwRRwwwwwwRRRRRRRRrw..',
+    'wRRwkkkkkkwRRRRRRRrw..',
+    'wRwwwwwwwwwwRRRRRrww..',
+    '.wwww.ww..wwwRRRrww...',
+    '..w..w..w...wwwww.....',
+    '...........yyyy.......',
+    '...........yyyy.......',
+    '...........y..y.......',
+    '..........kk..kk......',
+]), 'lionhead')
+lion_body = ascii_img([
+    '..YYYYYYYYYYYYYY..',
+    '.YrRrRrRrRrRrRrRY.',
+    'YrRYRrRYRrRYRrRYrY',
+    'YRrRrRrRrRrRrRrRrY',
+    'YrRYRrRYRrRYRrRYrY',
+    'YRrRrRrRrRrRrRrRrY',
+    '.YYYYYYYYYYYYYYYY.',
+    '.wwwwwwwwwwwwwwww.',
+    '..w.w.w.w.w.w.w.w.',
+    '....yyyy....yyyy..',
+    '....yyyy....yyyy..',
+    '....y..y....y..y..',
+    '...kk..kk..kk..kk.',
+])
+strip_save(critter_frames(lion_body, 9), 'lionbody')
+
+can = ['.....kk.......', '..SSSSSSSSSS..', '.SGGGGGGGGGGS.', '.ssssssssssss.']
+for i in range(12):
+    can.append('..SgSgSgSgSg..' if i % 2 == 0 else '..sSsSsSsSsS..')
+can += ['..ssssssssss..', '...tttttttt...']
+save(ascii_img(can), 'trashcan')
+
+save(ascii_img([
+    '....Y....',
+    '...YYY...',
+    '...YkY...',
+    '..YYkYY..',
+    '..YYkYY..',
+    '.YYYkYYY.',
+    '.YYYYYYY.',
+    'YYYYkYYYY',
+    'YYYYYYYYY',
+]), 'warn')
+
+# 1-up: a heart with a white "+"
+save(ascii_img([
+    '.rr.rr.',
+    'rRRrRRr',
+    'rRRwRRr',
+    'rRwwwRr',
+    '.rRwRr.',
+    '..rRr..',
+    '...r...',
+]), 'oneup')
 
 # Platform ledge tile (16x8) — brownstone ledge matching the city wall
 save(ascii_img([

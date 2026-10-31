@@ -2,7 +2,7 @@
 // fills the empty space under the game like a Game Boy, and in landscape it floats over
 // the corners. Scenes pick a layout with setPad(); the game reads padState every frame.
 
-export var padState = { left: false, right: false, up: false, down: false, jump: false, fire: false, dx: 0, dy: 0, dragging: false };
+export var padState = { left: false, right: false, up: false, down: false, jump: false, fire: false, duck: false, dx: 0, dy: 0, dragging: false };
 
 export function isTouch() {
   return /[?&]touch/.test(location.search) || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -12,6 +12,7 @@ var LAYOUTS = {
   platformer: { left: [['left', '◀'], ['right', '▶']], right: [['jump', 'JUMP']] },
   runner: { left: [['down', 'DUCK']], right: [['jump', 'JUMP']] },
   lanes: { left: [['up', '▲'], ['down', '▼']], right: [['jump', 'HOP']], stack: true },
+  runner3: { left: [['up', '▲'], ['down', '▼']], right: [['duck', 'DUCK'], ['jump', 'JUMP']], stack: true },
 };
 
 var root = null;
@@ -26,7 +27,7 @@ function el(tag, cls, text) {
 }
 
 function recompute() {
-  ['left', 'right', 'up', 'down', 'jump', 'fire'].forEach(function(k) { padState[k] = false; });
+  ['left', 'right', 'up', 'down', 'jump', 'fire', 'duck'].forEach(function(k) { padState[k] = false; });
   padState.dragging = false;
   Object.keys(touches).forEach(function(id) {
     var b = touches[id];

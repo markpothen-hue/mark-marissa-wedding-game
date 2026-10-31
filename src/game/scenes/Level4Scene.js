@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { playMusic } from '../audio';
 import {
-  Rig, Hud, Controls, makeParallax, burst, spark, popup, banner, flashScreen,
+  Rig, Hud, Controls, makeParallax, burst, spark, popup, banner, flashScreen, defeat,
   finishLevel, addScore, gameOver, playSound, gameState, rectsHit, takeDrag, isTouch, GAME_WIDTH, GAME_HEIGHT, FONT,
 } from '../kit';
 
@@ -98,7 +98,7 @@ export class Level4Scene extends Phaser.Scene {
   }
 
   addFoe(o) {
-    o.spr = this.add.image(o.x, o.y, o.key || 'raccoon').setDepth(8).setFlipX(!o.key);
+    o.spr = (o.key ? this.add.image(o.x, o.y, o.key) : this.add.sprite(o.x, o.y, 'raccoon-run').play('raccoon-run')).setDepth(8).setFlipX(!o.key);
     o.baseY = o.y;
     o.age = 0;
     o.pts = o.pts || 150;
@@ -283,9 +283,8 @@ export class Level4Scene extends Phaser.Scene {
       popup(this, o.x, o.y - 20, '+' + o.pts);
       playSound('stomp');
     }
-    burst(this, o.x, o.y, o.key ? 0x9a6a3a : 0x9a9aa8, 14);
     spark(this, o.x, o.y);
-    o.spr.destroy();
+    defeat(this, o.spr, o.key ? 0x9a6a3a : 0x9a9aa8);
     var at = this.foes.indexOf(o);
     if (at >= 0) this.foes.splice(at, 1);
     void idx;
