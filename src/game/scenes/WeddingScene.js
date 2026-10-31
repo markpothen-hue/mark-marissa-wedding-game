@@ -7,15 +7,18 @@ import { gameState } from '../state';
 // to the Bridal Chorus: tap on the beat to take each step (no way to lose).
 // At the altar: both say I DO under the cross, Mark slides the ring on, kiss, reception.
 
+// The church art is a SIDE view (aisle runs left to right, altar + crucifix at the right end), so the
+// guests in the pews, the clergy and the couple all share one scale.
 var BG_W = 1143;          // church art scaled to the 500px game height
-var FLOOR = 492;
-var ALTAR_X = 900;        // the crucifix + baldachin
+var FLOOR = 478;          // feet on the aisle runner
+var ALTAR_X = 1000;       // in front of the altar, by the crucifix
 var START_X = 110;
-var STOP_X = 790;         // where the walk ends; she then steps up to Mark
+var STOP_X = 860;         // foot of the altar steps; she then steps up to Mark
+var PEW_Y = 402;          // feet of anyone standing at the front of the pews
 var BRIDE_X = ALTAR_X - 34, GROOM_X = ALTAR_X + 34;
 // clergy row under the cross, left to right ('clergy' strip frames)
-var CLERGY = [['FR-ALB', -134], ['FR-WHITE', -68], ['BISHOP', 0], ['FR-GREEN', 68], ['FR-BEARD', 134]];
-var STEP_Y = FLOOR - 48;  // the altar step the clergy stand on
+var CLERGY = [['FR-ALB', -96], ['FR-WHITE', -48], ['BISHOP', 0], ['FR-GREEN', 48], ['FR-BEARD', 96]];
+var STEP_Y = 414;         // the altar platform the clergy stand on
 var BEAT = 60 / 88 * 1000; // one quarter note of the wedding march
 var CAST = { AARON: 0, AMMA: 1, APPA: 2, LUKE: 3, DADA: 4, MAMA: 5, RUTH: 6, MARK: 7, MARISSA: 8 };
 // family cheering from the front of the pews as she passes: [name, x, line]
@@ -39,6 +42,13 @@ export class WeddingScene extends Phaser.Scene {
     this.cameras.main.fadeIn(600);
     this.cameras.main.setBounds(0, 0, BG_W, 500);
     this.add.image(0, 0, 'bg-church').setOrigin(0).setDisplaySize(BG_W, 500);
+    // white aisle runner with petals, up to the altar steps
+    var run = this.add.graphics().setDepth(0.5);
+    run.fillStyle(0xfffaf2, 0.95).fillRect(0, FLOOR - 30, STOP_X + 20, 44);
+    run.lineStyle(2, 0xd9a640, 0.8).lineBetween(0, FLOOR - 30, STOP_X + 20, FLOOR - 30).lineBetween(0, FLOOR + 14, STOP_X + 20, FLOOR + 14);
+    for (var pt = 0; pt < 90; pt++) {
+      run.fillStyle([0xff9ec7, 0xffffff, 0xffc4dd][pt % 3]).fillEllipse(Phaser.Math.Between(4, STOP_X + 10), Phaser.Math.Between(FLOOR - 26, FLOOR + 10), 5, 3);
+    }
 
     // Mark + all the clergy waiting at the altar, under the cross
     this.clergy = {};
@@ -52,7 +62,7 @@ export class WeddingScene extends Phaser.Scene {
 
     // family at the front of the pews
     this.cheer = CHEER.map(function(c) {
-      var s = self.cast(c[0], c[1]).setY(FLOOR - 62).setScale(0.82).setDepth(2);
+      var s = self.cast(c[0], c[1]).setY(PEW_Y).setScale(0.85).setDepth(2);
       return { name: c[0], spr: s, x: c[1], line: c[2], done: false };
     });
 
@@ -196,8 +206,8 @@ export class WeddingScene extends Phaser.Scene {
     this.say(this.appa, 'TAKE GOOD CARE OF HER!', 1600);
     this.time.delayedCall(1700, function() {
       // Amma & Appa take their seats in the front pew
-      self.tweens.add({ targets: self.amma, x: 668, y: FLOOR - 62, scale: 0.82, duration: 900, onComplete: function() { self.amma.setDepth(2); } });
-      self.tweens.add({ targets: self.appa, x: 708, y: FLOOR - 62, scale: 0.82, duration: 900, onComplete: function() { self.appa.setDepth(2); } });
+      self.tweens.add({ targets: self.amma, x: 730, y: PEW_Y, scale: 0.85, duration: 900, onComplete: function() { self.amma.setDepth(2); } });
+      self.tweens.add({ targets: self.appa, x: 770, y: PEW_Y, scale: 0.85, duration: 900, onComplete: function() { self.appa.setDepth(2); } });
       self.tweens.add({ targets: self.marissa, x: BRIDE_X, duration: 700 });
       self.tweens.add({ targets: self.mark, x: GROOM_X, duration: 700 });
     });

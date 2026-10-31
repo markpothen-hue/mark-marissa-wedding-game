@@ -872,6 +872,27 @@ if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
         if enclosed: im = key_all(im)
         bb = im.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
         save(shrink(im, h / (bb[3] - bb[1])), name)
+    # Gemini heart (pink, on a green key): the collectible, plus the HUD life hearts. The empty life heart
+    # keeps the outline and dims the inside.
+    hp = os.path.join(CRIT, 'heart.png')
+    if os.path.exists(hp):
+        hi = Image.open(hp).convert('RGBA')
+        hpx = hi.load()
+        for y in range(hi.height):
+            for x in range(hi.width):
+                r, g, b, a = hpx[x, y]
+                if g > 120 and g > r + 30 and g > b + 30: hpx[x, y] = (0, 0, 0, 0)
+        hi = hi.crop(hi.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox())
+        save(shrink(hi, 13 / hi.height), 'heart')
+        full = shrink(hi, 7 / hi.height)
+        save(full, 'hud-heart')
+        empty = full.copy()
+        epx = empty.load()
+        for y in range(empty.height):
+            for x in range(empty.width):
+                r, g, b, a = epx[x, y]
+                if a and r + g + b > 150: epx[x, y] = (70, 56, 84, 255)
+        save(empty, 'hud-heart-empty')
     pr = key_magenta(os.path.join(FAM_DIR, 'priest.png'))
     bb = pr.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
     save(shrink(pr, 40 / (bb[3] - bb[1])), 'priest')
