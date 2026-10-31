@@ -54,6 +54,8 @@ export class Level2Scene extends Phaser.Scene {
         this.marks.push(this.add.rectangle(d * 100, (LANES[l] + LANES[l + 1]) / 2 - 4, 40, 3, 0xffe066, 0.45).setDepth(2));
       }
     }
+    // your lane is lit, so it's obvious what's in your path
+    this.laneBand = this.add.rectangle(0, LANES[1] - 4, GAME_WIDTH, 36, 0xfff3c4, 0.14).setOrigin(0, 0.5).setDepth(2);
     this.shadow = this.add.ellipse(PX_, LANES[1], 46, 10, 0x000000, 0.35).setDepth(3);
     this.rig = new Rig(this, PX_, LANES[1], gameState.char);
     this.hud = new Hud(this, 'CHINATOWN DASH', { progress: 'PAVILION' });
@@ -86,6 +88,12 @@ export class Level2Scene extends Phaser.Scene {
   track(t) {
     t.y = LANES[t.lane];
     t.vx = t.vx || 0;
+    if (t.kind !== 'food' && t.kind !== 'gold' && t.kind !== 'oneup') {
+      // footprint on the ground: turns amber when it's in your lane and coming at you
+      t.mark = this.add.ellipse(t.x, t.y - 2, Math.min(t.w, 110) + 16, 12, 0x000000, 0.4);
+      t.mark.dd = -4;
+      t.parts.unshift(t.mark);
+    }
     t.parts.forEach(function(p) {
       if (p.dx == null) p.dx = p.x - t.x;
       p.setDepth((p.dd || 0) + 5 + t.lane * 3);
@@ -270,6 +278,7 @@ export class Level2Scene extends Phaser.Scene {
       if (this.hop <= 0) { this.hop = 0; this.hopV = 0; this.rig.land(0.6); }
     }
     this.laneY += (LANES[this.lane] - this.laneY) * Math.min(1, s * 14);
+    this.laneBand.y = this.laneY - 4;
 
     this.bg.tilePositionX += move * 0.3;
     this.curb.tilePositionX += move;
@@ -290,6 +299,10 @@ export class Level2Scene extends Phaser.Scene {
       t.x -= move - (running ? t.vx * s : 0);
       for (var p = 0; p < t.parts.length; p++) t.parts[p].x = t.x + t.parts[p].dx;
       if (t.x < -160) { this.kill(t, i); continue; }
+      if (t.mark) {
+        var danger = t.lane === this.lane && t.x - PX_ > -20 && t.x - PX_ < 480 && !t.gone;
+        t.mark.setFillStyle(danger ? 0xffb000 : 0x000000, danger ? 0.65 : 0.4);
+      }
       if (t.gone || !running || t.lane !== this.lane) continue;
       if (Math.abs(t.x - PX_) > (t.w + 24) / 2) continue;
 

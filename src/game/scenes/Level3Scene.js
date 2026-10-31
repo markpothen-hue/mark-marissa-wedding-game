@@ -59,6 +59,8 @@ export class Level3Scene extends Phaser.Scene {
     this.crank = this.add.graphics().setDepth(14);
     this.crankA = 0;
     this.shadow = this.add.ellipse(0, 0, 70, 10, 0x000000, 0.25).setDepth(3);
+    // your lane is lit, so it's obvious what's in your path
+    this.laneBand = this.add.rectangle(0, LANES[1] - 4, GAME_WIDTH, 36, 0xffffff, 0.24).setOrigin(0, 0.5).setDepth(2);
     this.rig = new Rig(this, PX_, LANES[1], gameState.char);
     this.rig.sprite.setDepth(11);
 
@@ -107,6 +109,8 @@ export class Level3Scene extends Phaser.Scene {
     if (kind === 'cookie') t.spin = true;
     if (kind === 'squirrel') { t.vx = 70; t.nextHop = 600; }
     if (kind === 'puddle') spr.setOrigin(0.5, 0.6);
+    // footprint on the ground: turns amber when it's in your lane and coming at you
+    t.mark = this.add.ellipse(x, y - 2, Math.min(t.w, 90) + 16, 12, 0x000000, 0.3).setDepth(4 + lane * 3);
     this.things.push(t);
     return t;
   }
@@ -166,6 +170,7 @@ export class Level3Scene extends Phaser.Scene {
     this.wheelB.setPosition(PX_ - 24, axle).setDepth(depth);
     this.wheelF.setPosition(PX_ + 24, axle).setDepth(depth);
     this.frame.setPosition(PX_, axle).setDepth(depth + 1).setRotation(this.rig.lean);
+    this.laneBand.y = this.laneY - 4;
     this.shadow.setPosition(PX_, this.laneY - 2).setScale(1 - this.hop / 300);
     this.wheelB.anims.timeScale = this.wheelF.anims.timeScale = this.speed / 280;
 
@@ -197,7 +202,12 @@ export class Level3Scene extends Phaser.Scene {
         t.spr.rotation = Math.sin(time * 0.03) * 0.12;
       }
       t.spr.x = t.x;
-      if (t.x < -80) { t.spr.destroy(); this.things.splice(i, 1); continue; }
+      if (t.mark) {
+        var danger = t.lane === this.lane && t.x - PX_ > -20 && t.x - PX_ < 480 && !t.cleared;
+        t.mark.setPosition(t.x, LANES[t.lane] - 2).setDepth(4 + t.lane * 3);
+        t.mark.setFillStyle(danger ? 0xffb000 : 0x000000, danger ? 0.7 : 0.3);
+      }
+      if (t.x < -80) { t.spr.destroy(); if (t.mark) t.mark.destroy(); this.things.splice(i, 1); continue; }
       if (t.gone || this.done || this.dead || t.lane !== this.lane) continue;
       if (Math.abs(t.x - PX_) > (t.w + 50) / 2) continue;
 
