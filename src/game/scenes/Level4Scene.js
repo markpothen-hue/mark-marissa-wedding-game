@@ -10,7 +10,7 @@ import {
 // Survive the honking goose squadrons, then the final boss: Rufus + Daffy, who stole the
 // wedding cake and turned it into a hot-air balloon. Tennis balls, sneakers, frosting.
 
-var BOSS_AT = 33;
+var BOSS_AT = 36;
 // Family cameo order matches the 'family' sprite strip
 export var FAMILY = ['AARON', 'AMMA', 'APPA', 'LUKE', 'DADA', 'MAMA', 'RUTH'];
 
@@ -33,12 +33,10 @@ export class Level4Scene extends Phaser.Scene {
     this.pickups = [];
     this.boss = null;
     this.script = [
-      [1, 'line', 140], [1.8, 'line', 360], [3.2, 'throwers'], [4.5, 'line', 200], [6, 'vee'],
-      [7.5, 'line', 250], [8.5, 'bottle', 220], [9.5, 'throwers'], [10.5, 'line', 300], [12, 'vee'],
-      [13, 'line', 150], [13.4, 'line', 350],
-      [16, 'bottle', 300], [17, 'throwers'], [18, 'line', 200], [18.4, 'line', 330], [20, 'vee'], [21, 'throwers'],
-      [23, 'throwers'], [24, 'line', 140], [24.5, 'line', 380], [26, 'vee'], [27, 'bottle', 180], [29, 'vee'],
-      [30.5, 'throwers'], [BOSS_AT, 'boss'],
+      [1.2, 'line', 160], [3, 'line', 340], [5, 'throwers'], [7.5, 'vee'],
+      [9.5, 'line', 250], [10.5, 'bottle', 220], [12.5, 'throwers'], [15, 'vee'],
+      [17, 'line', 150], [17.6, 'line', 350], [18.5, 'bottle', 300], [21, 'throwers'],
+      [24, 'vee'], [26.5, 'line', 200], [28.5, 'throwers'], [31, 'bottle', 180], [32, 'vee'], [BOSS_AT, 'boss'],
     ];
   }
 
@@ -78,14 +76,14 @@ export class Level4Scene extends Phaser.Scene {
       var e = this.script.shift();
       var self = this;
       if (e[1] === 'line') {
-        for (var i = 0; i < 5; i++) this.addFoe({ x: GAME_WIDTH + 40 + i * 60, y: e[2], vx: -170, amp: 50, freq: 3, ph: i * 0.6, hp: 2, throws: this.t > 15 && i % 2 === 1 });
+        for (var i = 0; i < 5; i++) this.addFoe({ x: GAME_WIDTH + 40 + i * 60, y: e[2], vx: -170, amp: 50, freq: 3, ph: i * 0.6, hp: 2 });
       } else if (e[1] === 'vee') {
         for (var v = 0; v < 7; v++) {
           var off = Math.abs(v - 3);
           this.addFoe({ x: GAME_WIDTH + 40 + off * 50, y: 250 + (v - 3) * 45, vx: -190, amp: 0, hp: 2 });
         }
       } else if (e[1] === 'throwers') {
-        [130, 250, 370].forEach(function(y, k) {
+        [170, 340].forEach(function(y, k) {
           self.addFoe({ x: GAME_WIDTH + 40 + k * 90, y: y, vx: -120, amp: 20, freq: 2, hp: 3, stopAt: 560 + k * 60, throws: true });
         });
       } else if (e[1] === 'bottle') {
@@ -104,14 +102,14 @@ export class Level4Scene extends Phaser.Scene {
     o.baseY = o.y;
     o.age = 0;
     o.pts = o.pts || 150;
-    o.w = o.spr.width * 0.75; o.h = o.spr.height * 0.75;
+    o.w = o.spr.width * (o.key ? 0.75 : 0.5); o.h = o.spr.height * (o.key ? 0.75 : 0.45);
     o.throwT = 900 + Math.random() * 800;
     this.foes.push(o);
   }
 
   spawnBoss() {
     var b = this.add.sprite(GAME_WIDTH + 120, 250, 'balloon-boss').play('boss-bob').setDepth(9);
-    this.boss = { spr: b, hp: 90, max: 90, phase: 0, t: 0, atk: 1200, x: GAME_WIDTH + 120, y: 250 };
+    this.boss = { spr: b, hp: 70, max: 70, phase: 0, t: 0, atk: 1600, x: GAME_WIDTH + 120, y: 250 };
     flashScreen(this, 0x7a3cff, 0.4);
     playMusic('boss');
     banner(this, 'RUFUS & DAFFY!', '#ffe066', 'THEY STOLE THE WEDDING CAKE!');
@@ -192,9 +190,9 @@ export class Level4Scene extends Phaser.Scene {
       if (o.throws && !this.done) {
         o.throwT -= dt;
         if (o.throwT <= 0 && o.x < GAME_WIDTH - 20) {
-          o.throwT = 1500;
+          o.throwT = 2300;
           var tx = this.px - o.x, ty = (this.py - 30) - o.y, tl = Math.hypot(tx, ty) || 1;
-          this.enemyShot(o.x - 30, o.y - 6, 0, 0, tx / tl * 240, ty / tl * 240, 'feather');
+          this.enemyShot(o.x - 30, o.y - 6, 0, 0, tx / tl * 190, ty / tl * 190, 'feather');
           if (Math.random() < 0.35) popup(this, o.x, o.y - 40, 'HONK!', '#ffffff');
         }
       }
@@ -227,6 +225,7 @@ export class Level4Scene extends Phaser.Scene {
       if (rectsHit(this.px, this.py - 30, 40, 50, p.x, p.y, 34, 50)) {
         p.spr.destroy(); this.pickups.splice(a, 1);
         this.powerLv = Math.min(3, this.powerLv + 1);
+        if (this.lives < 3) { this.lives++; gameState.lives = this.lives; popup(this, this.px, this.py - 70, '+1 LIFE', '#8fd3ff'); }
         addScore(this, 300);
         playSound('clear');
         flashScreen(this, 0x7a3cff, 0.35);
@@ -258,25 +257,25 @@ export class Level4Scene extends Phaser.Scene {
       b.phase = (b.phase + 1) % 4;
       if (b.phase === 0) {
         // Daffy: slobbery sneakers in a fan
-        var fan = angry ? 3 : 2;
-        for (var i = -fan; i <= fan; i++) this.enemyShot(b.x - 30, b.y + 50, 280, i * 60, null, null, 'sneaker');
+        var fan = angry ? 2 : 1;
+        for (var i = -fan; i <= fan; i++) this.enemyShot(b.x - 30, b.y + 50, 230, i * 70, null, null, 'sneaker');
       } else if (b.phase === 3) {
         // frosting ring: everything at once, find the gap
         var gapA = Math.random() * Math.PI * 2;
-        for (var q = 0; q < 14; q++) {
-          var ang = q / 14 * Math.PI * 2;
-          if (Math.abs(Math.atan2(Math.sin(ang - gapA), Math.cos(ang - gapA))) < 0.5) continue;
-          this.enemyShot(b.x - 30, b.y, 0, 0, Math.cos(ang) * 200, Math.sin(ang) * 200, 'frosting');
+        for (var q = 0; q < 10; q++) {
+          var ang = q / 10 * Math.PI * 2;
+          if (Math.abs(Math.atan2(Math.sin(ang - gapA), Math.cos(ang - gapA))) < 0.8) continue;
+          this.enemyShot(b.x - 30, b.y, 0, 0, Math.cos(ang) * 170, Math.sin(ang) * 170, 'frosting');
         }
       } else if (b.phase === 1) {
         // they call in the geese
-        for (var r = 0; r < (angry ? 5 : 4); r++) {
+        for (var r = 0; r < (angry ? 4 : 3); r++) {
           this.addFoe({ x: GAME_WIDTH + 40 + r * 55, y: Phaser.Math.Between(140, 420), vx: -210, amp: 30, freq: 3, ph: r, hp: 2 });
         }
         popup(this, b.x - 40, b.y - 110, 'HONK HONK!', '#ffffff');
       } else {
         // Rufus: tennis balls lobbed in arcs that drop onto you
-        for (var k = 0; k < (angry ? 4 : 3); k++) {
+        for (var k = 0; k < (angry ? 3 : 2); k++) {
           this.time.delayedCall(k * 200, function() {
             if (!this.boss || this.boss.hp <= 0 || this.done) return;
             var tt = 1.0 + Math.random() * 0.3, ox = this.boss.x - 40, oy = this.boss.y + 40;
@@ -284,7 +283,7 @@ export class Level4Scene extends Phaser.Scene {
           }, null, this);
         }
       }
-      b.atk = angry ? 850 : 1200;
+      b.atk = angry ? 1250 : 1600;
     }
   }
 
@@ -472,6 +471,6 @@ export class Level4Scene extends Phaser.Scene {
     burst(this, this.px, this.py - 30, 0xffffff, 12);
     if (this.lives <= 0) { this.dead = true; gameOver(this); return; }
     playSound('hurt');
-    this.rig.flashHurt(1600);
+    this.rig.flashHurt(2200);
   }
 }
