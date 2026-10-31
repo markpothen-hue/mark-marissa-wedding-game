@@ -63,6 +63,22 @@ export function playSound(type) {
         });
         o.frequency.setValueAtTime(1, t); g.gain.value = 0; o.start(t); o.stop(t + 0.01);
         break;
+      case 'sing':
+        // a little sung phrase: sine voice with vibrato (Marissa's SING power)
+        [[784, 0, 0.32], [880, 0.3, 0.3], [988, 0.58, 0.3], [1175, 0.86, 0.7], [988, 1.5, 0.25], [1319, 1.72, 0.9]].forEach(function(n) {
+          var o3 = ac.createOscillator(), g3 = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+          lfo.frequency.value = 6; lg.gain.value = n[0] * 0.012;
+          lfo.connect(lg); lg.connect(o3.frequency);
+          o3.type = 'sine';
+          o3.connect(g3); g3.connect(ac.destination);
+          o3.frequency.setValueAtTime(n[0], t + n[1]);
+          g3.gain.setValueAtTime(0.0001, t + n[1]);
+          g3.gain.exponentialRampToValueAtTime(0.08, t + n[1] + 0.05);
+          g3.gain.exponentialRampToValueAtTime(0.001, t + n[1] + n[2]);
+          o3.start(t + n[1]); o3.stop(t + n[1] + n[2]); lfo.start(t + n[1]); lfo.stop(t + n[1] + n[2]);
+        });
+        o.frequency.setValueAtTime(1, t); g.gain.value = 0; o.start(t); o.stop(t + 0.01);
+        break;
       case 'select':
         o.frequency.setValueAtTime(440, t);
         o.frequency.setValueAtTime(660, t + 0.06);

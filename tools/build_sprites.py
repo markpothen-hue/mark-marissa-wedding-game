@@ -806,6 +806,30 @@ if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
                 (('fr-alb', 40), ('fr-white', 40), ('bishop', 41), ('fr-green', 40), ('fr-beard', 40))], 'clergy')
     # the couple's special dance moves (lift, dip)
     strip_save([fit(os.path.join(FAM_DIR, n + '.png'), 44, 56, 50) for n in ('couple-lift', 'couple-dip')], 'couple')
+    # Gemini art for the carpet level: plush raccoon, the Raccoon King's cake balloon, and Rufus + Daffy.
+    # Two frames each: the second sits 1px higher so the balloon-bob anims still bob.
+    FOE_DIR = os.path.join(ROOT, 'art', 'foes')
+    def bob2(path, h, fw, fh):
+        a = fit(path, h, fw, fh - 1)
+        f0 = Image.new('RGBA', (fw, fh), (0, 0, 0, 0)); f0.paste(a, (0, 1))
+        f1 = Image.new('RGBA', (fw, fh), (0, 0, 0, 0)); f1.paste(a, (0, 0))
+        return [f0, f1]
+    if os.path.exists(os.path.join(FOE_DIR, 'raccoon.png')):
+        strip_save(bob2(os.path.join(FOE_DIR, 'raccoon.png'), 38, 36, 40), 'balloon-raccoon')
+        strip_save(bob2(os.path.join(FOE_DIR, 'boss.png'), 96, 72, 100), 'balloon-boss')
+        strip_save(bob2(os.path.join(FOE_DIR, 'rufus.png'), 50, 44, 52), 'dog-rufus')
+        strip_save(bob2(os.path.join(FOE_DIR, 'daffy.png'), 50, 44, 52), 'dog-daffy')
+    if os.path.exists(os.path.join(FOE_DIR, 'bottle.png')):
+        # Mark's giant sticker-covered water bottle: the Central Park TURBO pickup.
+        # Drop the loose sparkles around it so the crop hugs the bottle.
+        bt = key_magenta(os.path.join(FOE_DIR, 'bottle.png'))
+        al = bt.getchannel('A').point(lambda v: 255 if v > 40 else 0)
+        w, h = bt.size
+        cx, cy = w // 2, h // 2
+        col = [x for x in range(w) if al.getpixel((x, cy))]
+        row = [y for y in range(h) if al.getpixel((cx, y))]
+        bt = bt.crop((min(col) - 2, min(row) - 2, max(col) + 3, max(row) + 3))
+        save(shrink(bt, 30 / bt.height), 'bottle')
     pr = key_magenta(os.path.join(FAM_DIR, 'priest.png'))
     bb = pr.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
     save(shrink(pr, 40 / (bb[3] - bb[1])), 'priest')

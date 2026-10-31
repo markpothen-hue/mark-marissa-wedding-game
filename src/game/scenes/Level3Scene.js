@@ -10,7 +10,7 @@ import {
 // switch lanes around benches, watch the squirrels — they change lanes on you.
 // The cookies are a trap. Do NOT eat the cookies. Grab hearts instead.
 // Specials: RAMPS launch you into big air over everything; the TURBO bolt
-// gives a few seconds of top speed where you smash straight through obstacles.
+// (Mark's comically large water bottle) gives a few seconds of top speed where you smash straight through obstacles.
 // Set pieces: the lion dance parades through the park, and later the cycling
 // club blows past from behind ("ON YOUR LEFT!") — pick the lane they leave open.
 
@@ -92,16 +92,6 @@ export class Level3Scene extends Phaser.Scene {
   }
 
   makeTextures() {
-    if (!this.textures.exists('turbo-tok')) {
-      var g = this.make.graphics({ add: false });
-      g.fillStyle(0x1a1020).fillCircle(17, 17, 17);
-      g.fillStyle(0xffe066).fillCircle(17, 17, 14);
-      g.fillStyle(0xfff6c0).fillCircle(13, 12, 5);
-      g.fillStyle(0x1a1020).fillPoints([{ x: 19, y: 4 }, { x: 8, y: 19 }, { x: 16, y: 19 }, { x: 13, y: 30 }, { x: 26, y: 14 }, { x: 18, y: 14 }, { x: 22, y: 4 }], true);
-      g.fillStyle(0xffffff).fillPoints([{ x: 19, y: 7 }, { x: 11, y: 17 }, { x: 18, y: 17 }, { x: 15, y: 26 }, { x: 23, y: 16 }, { x: 16, y: 16 }, { x: 20, y: 7 }], true);
-      g.generateTexture('turbo-tok', 34, 34);
-      g.destroy();
-    }
     if (!this.textures.exists('ramp')) {
       var r = this.make.graphics({ add: false });
       r.fillStyle(0x5a3a20).fillPoints([{ x: 0, y: 40 }, { x: 88, y: 40 }, { x: 88, y: 0 }], true);
@@ -129,8 +119,8 @@ export class Level3Scene extends Phaser.Scene {
         this.addHeart(x + 40 + this.speed * t, lane, Math.max(30, AIR_V * t - AIR_G / 2 * t * t));
       }
     } else {
-      var tok = this.add.image(x, LANES[lane] - 40, 'turbo-tok').setDepth(6 + lane * 3);
-      this.tweens.add({ targets: tok, y: LANES[lane] - 52, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      var tok = this.add.image(x, LANES[lane] - 44, 'bottle').setDepth(6 + lane * 3);
+      this.tweens.add({ targets: tok, y: LANES[lane] - 56, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       this.tweens.add({ targets: tok, angle: 12, duration: 200, yoyo: true, repeat: -1 });
       this.things.push({ kind: 'turbo', x: x, lane: lane, y: LANES[lane], spr: tok, w: 34 });
     }
@@ -141,7 +131,7 @@ export class Level3Scene extends Phaser.Scene {
     this.turbo = TURBO_MS;
     playSound('clear');
     this.cameras.main.flash(180, 255, 240, 160);
-    banner(this, 'TURBO!', '#ffe066', 'SMASH RIGHT THROUGH');
+    banner(this, 'HYDRATED!', '#8fd3ff', 'TURBO: SMASH RIGHT THROUGH');
   }
 
   smash(t) {

@@ -2,12 +2,13 @@ import Phaser from 'phaser';
 import { playMusic } from '../audio';
 import {
   Rig, Hud, Controls, makeParallax, burst, spark, popup, banner, flashScreen, defeat, grabOneUp,
-  setCheckpoint, getCheckpoint, finishLevel, addScore, gameOver, playSound, gameState, rectsHit, GAME_HEIGHT, FONT,
+  setCheckpoint, getCheckpoint, finishLevel, addScore, gameOver, playSound, gameState, rectsHit, GAME_WIDTH, GAME_HEIGHT, FONT,
 } from '../kit';
 
 // LEVEL 1: "Fort Lee to Blue Angel" — hand-built side-scrolling platformer.
 // Every surface you can stand on is drawn. Stomp squirrels and boulders, ride the
 // moving ledges, grab the ring for a LOVE POWER UP, slide down the flag.
+// Playing as Marissa, a microphone shows up too: she SINGS and clears every enemy on screen.
 
 var GY = 430;          // top of the sidewalk
 var LEN = 6600;        // level length
@@ -33,6 +34,7 @@ var THROWERS = [[2268, 230], [4202, 235], [5268, 285]];                         
 var ONEUPS = [[2560, 300], [4700, 250]];
 var BOULDERS = [[1100, 1650], [2900, 3560], [4900, 5460], [5700, 6150]]; // [trigger x, spawn x]
 var RINGS = [[1410, 220], [4190, 180]];
+var MICS = [[3300, 380], [5680, 380]];   // Marissa only
 var CHECKPOINT = 3000;
 var FLAG_X = 6300;
 
@@ -124,6 +126,19 @@ export class Level1Scene extends Phaser.Scene {
       self.time.addEvent({ delay: 500, loop: true, callback: function() { if (ring.active) spark(self, ring.x + Phaser.Math.Between(-10, 10), ring.y + Phaser.Math.Between(-10, 10)); } });
     });
 
+    // Microphones (Marissa's SING power)
+    this.makeMic();
+    this.mics = this.physics.add.group({ allowGravity: false });
+    if (gameState.char === 'marissa') {
+      MICS.forEach(function(m) {
+        var mic = self.mics.create(m[0], m[1], 'mic');
+        self.tweens.add({ targets: mic, y: m[1] - 10, angle: 10, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        self.time.addEvent({ delay: 380, loop: true, callback: function() {
+          if (mic.active) self.note(mic.x + Phaser.Math.Between(-12, 12), mic.y - 16, 30, 600);
+        } });
+      });
+    }
+
     // Enemies
     this.enemies = this.physics.add.group();
     SQUIRRELS.forEach(function(s) {
@@ -190,6 +205,7 @@ export class Level1Scene extends Phaser.Scene {
     this.physics.add.collider(this.enemies, this.solids);
     this.physics.add.overlap(this.body, this.hearts, this.grabHeart, null, this);
     this.physics.add.overlap(this.body, this.rings, this.grabRing, null, this);
+    this.physics.add.overlap(this.body, this.mics, this.grabMic, null, this);
     this.physics.add.overlap(this.body, this.enemies, this.touchEnemy, null, this);
     this.physics.add.collider(this.acorns, this.solids, function(a) { puffOut(self, a); });
     this.physics.add.overlap(this.body, this.acorns, function(p, a) {
@@ -378,6 +394,70 @@ export class Level1Scene extends Phaser.Scene {
     playSound('clear');
     flashScreen(this, 0x7a3cff, 0.5);
     banner(this, 'LOVE POWER UP!', '#d9b3ff', 'RUN THROUGH ANYTHING');
+  }
+
+  makeMic() {
+    if (this.textures.exists('mic')) return;
+    var g = this.make.graphics({ add: false });
+    g.fillStyle(0x1a1020).fillRoundedRect(8, 14, 10, 22, 3);       // handle
+    g.fillStyle(0xd9a640).fillRoundedRect(10, 16, 6, 18, 2);
+    g.fillStyle(0x1a1020).fillCircle(13, 10, 10);                   // head
+    g.fillStyle(0xe8e8f0).fillCircle(13, 10, 8);
+    g.fillStyle(0xb0b0c0);
+    for (var y = 5; y < 16; y += 3) for (var x = 7; x < 20; x += 3) if (Math.hypot(x - 13, y - 10) < 7) g.fillRect(x, y, 1, 1);
+    g.fillStyle(0xffffff).fillCircle(10, 7, 2);
+    g.generateTexture('mic', 26, 38);
+    g.destroy();
+  }
+
+  // a floating music note
+  note(x, y, rise, ms, color) {
+    var n = this.add.text(x, y, Math.random() < 0.5 ? '\u266A' : '\u266B', {
+      fontFamily: 'serif', fontSize: '22px', color: color || '#ff9ec7', stroke: '#1a1020', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(40);
+    this.tweens.add({ targets: n, y: y - rise, x: x + Phaser.Math.Between(-20, 20), alpha: 0, duration: ms, onComplete: function() { n.destroy(); } });
+    return n;
+  }
+
+  grabMic(p, m) {
+    var self = this;
+    m.destroy();
+    addScore(this, 500);
+    playSound('sing');
+    flashScreen(this, 0xff9ec7, 0.4);
+    banner(this, 'SING, MARISSA!', '#ff9ec7', 'HER VOICE CLEARS THE WAY');
+    this.power = Math.max(this.power, 2500);   // safe while she sings
+    // notes pour out of her in waves...
+    var cols = ['#ff9ec7', '#d9b3ff', '#ffe066', '#9be37a', '#8fd3ff'];
+    for (var w = 0; w < 6; w++) {
+      this.time.delayedCall(w * 300, function() {
+        for (var k = 0; k < 10; k++) {
+          var a = k / 10 * Math.PI * 2;
+          var n = self.note(self.body.x, self.body.y - 30, 0, 900, cols[(k + w) % cols.length]);
+          self.tweens.add({ targets: n, x: self.body.x + Math.cos(a) * 420, y: self.body.y - 30 + Math.sin(a) * 260, duration: 900 });
+        }
+      });
+    }
+    // ...and everything on screen is charmed away
+    this.time.delayedCall(450, function() {
+      var cam = self.cameras.main;
+      var onScreen = function(x, y) { return x > cam.scrollX - 40 && x < cam.scrollX + GAME_WIDTH + 40 && y > cam.scrollY - 40 && y < cam.scrollY + GAME_HEIGHT + 40; };
+      var n = 0;
+      self.enemies.getChildren().slice().forEach(function(e) {
+        if (e.active && e.body && e.body.enable && onScreen(e.x, e.y)) { defeat(self, e, 0xff9ec7); n++; }
+      });
+      self.pigeons.forEach(function(pg) {
+        if (pg.spr.active && onScreen(pg.spr.x, pg.spr.y)) { if (pg.shadow) pg.shadow.destroy(); defeat(self, pg.spr, 0xff9ec7); n++; }
+      });
+      self.cans.forEach(function(c) {
+        if (c.alive && onScreen(c.x, GY)) { c.alive = false; defeat(self, c.rc, 0xff9ec7); n++; }
+      });
+      self.acorns.getChildren().slice().forEach(function(a) { if (a.active) puffOut(self, a); });
+      if (n) {
+        addScore(self, n * 200);
+        popup(self, self.body.x, self.body.y - 110, 'ENCORE! +' + n * 200, '#ff9ec7');
+      }
+    });
   }
 
   // Stomps chain: bounce enemy to enemy without landing for x2, x3...
