@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playMusic } from '../audio';
 import { FONT, setPad, isTouch } from '../kit';
 import { playSound } from '../audio';
 
@@ -6,6 +7,7 @@ export class TitleScene extends Phaser.Scene {
   constructor() { super('Title'); }
 
   create() {
+    playMusic('title');
     setPad('hint', { text: 'TAP THE GAME TO START' });
     var width = this.scale.width;
     var height = this.scale.height;

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playMusic } from '../audio';
 import {
   Rig, Hud, Controls, makeParallax, burst, spark, popup, banner, flashScreen,
   finishLevel, addScore, gameOver, playSound, gameState, GAME_HEIGHT, FONT,
@@ -50,6 +51,7 @@ export class Level1Scene extends Phaser.Scene {
   }
 
   create() {
+    playMusic('level1');
     var self = this;
     this.physics.world.setBounds(0, -200, LEN, GAME_HEIGHT + 400);
     this.physics.world.gravity.y = 1500;

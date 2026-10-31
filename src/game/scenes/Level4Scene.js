@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playMusic } from '../audio';
 import {
   Rig, Hud, Controls, makeParallax, burst, spark, popup, banner, flashScreen,
   finishLevel, addScore, gameOver, playSound, gameState, rectsHit, takeDrag, isTouch, GAME_WIDTH, GAME_HEIGHT, FONT,
@@ -37,6 +38,7 @@ export class Level4Scene extends Phaser.Scene {
   }
 
   create() {
+    playMusic('level4');
     var self = this;
     this.cameras.main.fadeIn(250);
     this.bg = makeParallax(this, 'bg-level4');
@@ -109,6 +111,7 @@ export class Level4Scene extends Phaser.Scene {
     var b = this.add.image(GAME_WIDTH + 120, 250, 'raccoon').setScale(4).setFlipX(true).setDepth(9);
     this.boss = { spr: b, hp: 70, max: 70, phase: 0, t: 0, atk: 1500, x: GAME_WIDTH + 120, y: 250 };
     flashScreen(this, 0x7a3cff, 0.4);
+    playMusic('boss');
     banner(this, 'BIG RACCOON!', '#d9b3ff', 'HE STOLE THE WEDDING CAKE');
     playSound('die');
     this.bossBarBg = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 18, 404, 14, 0x1a1020).setDepth(300);

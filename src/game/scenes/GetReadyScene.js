@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playMusic } from '../audio';
 import { FONT, setPad } from '../kit';
 import { gameState, resetLives } from '../state';
 import { playSound } from '../audio';
@@ -26,6 +27,7 @@ export class GetReadyScene extends Phaser.Scene {
   }
 
   create() {
+    playMusic('level' + (this.levelIndex + 1));
     setPad('hint', { text: 'GET READY!' });
     var width = this.scale.width;
     var height = this.scale.height;

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playMusic } from '../audio';
 import {
   Rig, Hud, Controls, makeParallax, burst, spark, popup, banner,
   finishLevel, addScore, gameOver, playSound, gameState, rectsHit, GAME_WIDTH, GAME_HEIGHT, FONT,
@@ -32,6 +33,7 @@ export class Level2Scene extends Phaser.Scene {
   }
 
   create() {
+    playMusic('level2');
     this.cameras.main.fadeIn(250);
     this.bg = makeParallax(this, 'bg-level2');
     // curb strip on top, the painted wet street shows through underneath

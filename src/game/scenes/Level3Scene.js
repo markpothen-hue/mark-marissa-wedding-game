@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playMusic } from '../audio';
 import {
   Rig, Hud, Controls, makeParallax, burst, spark, popup, banner,
   finishLevel, addScore, gameOver, playSound, gameState, GAME_WIDTH, GAME_HEIGHT, FONT,
@@ -34,6 +35,7 @@ export class Level3Scene extends Phaser.Scene {
   }
 
   create() {
+    playMusic('level3');
     this.cameras.main.fadeIn(250);
     this.bg = makeParallax(this, 'bg-level3');
     this.add.rectangle(0, LANES[0] - 10, GAME_WIDTH, GAME_HEIGHT, 0xbe8c50).setOrigin(0).setDepth(1);

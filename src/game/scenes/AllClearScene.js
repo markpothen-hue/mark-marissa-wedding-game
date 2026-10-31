@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playMusic } from '../audio';
 import { FONT, setPad } from '../kit';
 import { gameState } from '../state';
 import { playSound } from '../audio';
@@ -7,6 +8,7 @@ export class AllClearScene extends Phaser.Scene {
   constructor() { super('AllClear'); }
 
   create() {
+    playMusic('title');
     setPad('hint', { text: 'YOU DID IT!' });
     var width = this.scale.width;
     var height = this.scale.height;

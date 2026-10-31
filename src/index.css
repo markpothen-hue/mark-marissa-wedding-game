@@ -68,3 +68,13 @@ body.touch #pad {
   padding: 16px 28px; font: 13px "Press Start 2P", monospace; color: #fff;
   background: #2a7a3a; border: 3px solid #ffe066; border-radius: 10px;
 }
+
+/* Mute toggle */
+#mute {
+  position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 10;
+  width: 44px; height: 44px; border-radius: 50%; font-size: 20px; line-height: 1;
+  background: rgba(26,16,32,0.7); border: 2px solid rgba(255,255,255,0.4); color: #fff; cursor: pointer;
+}
+@media (orientation: landscape) {
+  body.touch #mute { right: auto; left: 50%; transform: translateX(-50%); }
+}

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playMusic } from '../audio';
 import { FONT, setPad, isTouch } from '../kit';
 import { gameState } from '../state';
 import { playSound } from '../audio';
@@ -21,6 +22,7 @@ export class LevelClearScene extends Phaser.Scene {
   }
 
   create() {
+    playMusic('title');
     setPad('hint', { text: 'TAP THE GAME TO CONTINUE' });
     var width = this.scale.width;
     var height = this.scale.height;
