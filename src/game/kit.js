@@ -13,7 +13,7 @@ var PX = [
   'mark', 'marissa', 'heart', 'dumpling', 'cookie', 'apple', 'boulder', 'cart', 'squirrel', 'raccoon',
   'lantern', 'crate', 'bench', 'puddle', 'pinecone', 'leaf', 'ring', 'bullet', 'pebble', 'flag', 'checkpoint',
   'ledge', 'ground', 'street', 'path', 'bikeframe', 'dot', 'hud-heart', 'hud-heart-empty',
-  'courier', 'firecracker', 'lionhead', 'trashcan', 'warn', 'oneup', 'cake', 'chandelier',
+  'courier', 'firecracker', 'lionhead', 'trashcan', 'warn', 'oneup', 'cake', 'chandelier', 'priest',
 ];
 var STRIPS = {
   wheel: [34, 34], carpet: [76, 20], puff: [18, 18], spark: [14, 14],

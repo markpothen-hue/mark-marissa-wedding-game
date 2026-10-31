@@ -99,7 +99,7 @@ export class LevelClearScene extends Phaser.Scene {
       self.input.once('pointerdown', function() {
         playSound('select');
         if (nextIdx >= 4) {
-          self.scene.start('AllClear');
+          self.scene.start('Wedding');
         } else {
           self.scene.start('GetReady', { levelIndex: nextIdx });
         }
@@ -107,7 +107,7 @@ export class LevelClearScene extends Phaser.Scene {
       self.input.keyboard.once('keydown', function() {
         playSound('select');
         if (nextIdx >= 4) {
-          self.scene.start('AllClear');
+          self.scene.start('Wedding');
         } else {
           self.scene.start('GetReady', { levelIndex: nextIdx });
         }

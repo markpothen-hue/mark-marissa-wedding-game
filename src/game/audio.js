@@ -88,6 +88,13 @@ export function playSound(type) {
 // Each song is written in 8th-note steps: note names, '.' = rest, '-' = hold.
 
 var SONGS = {
+  // Wagner's Bridal Chorus ("Here Comes the Bride") - public domain
+  wedding: {
+    bpm: 88,
+    lead: 'G4 - C5 - - C5 C5 - - - - . G4 - D5 - B4 - C5 - - - - . G4 - C5 - - F5 F5 - - - E5 - D5 - C5 - B4 - C5 - D5 - - - - .',
+    bass: 'C3 - - - C3 - - - G2 - - - C3 - - - C3 - - - F2 - - - G2 - - - G2 - - -',
+    hats: false,
+  },
   title: {
     bpm: 112,
     lead: 'E5 G5 C6 G5 A5 G5 E5 - F5 A5 C6 A5 G5 - - . E5 G5 C6 E6 D6 C6 A5 - G5 E5 D5 E5 C5 - - .',

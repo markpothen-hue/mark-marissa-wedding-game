@@ -782,6 +782,9 @@ if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
             c.paste(f, ((CFW - f.width) // 2, CFH - f.height))
             poses[pi].append(c)
     strip_save(poses[0] + poses[1] + poses[2], 'cast')
+    pr = key_magenta(os.path.join(FAM_DIR, 'priest.png'))
+    bb = pr.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
+    save(shrink(pr, 40 / (bb[3] - bb[1])), 'priest')
 
 # Four-tier wedding cake with burgundy calla lilies (reception finale)
 cake_rows = []

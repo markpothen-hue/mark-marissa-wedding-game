@@ -10,6 +10,7 @@ import { Level3Scene } from './scenes/Level3Scene';
 import { Level4Scene } from './scenes/Level4Scene';
 import { LevelClearScene } from './scenes/LevelClearScene';
 import { AllClearScene } from './scenes/AllClearScene';
+import { WeddingScene } from './scenes/WeddingScene';
 
 export var GAME_WIDTH = 800;
 export var GAME_HEIGHT = 500;
@@ -43,6 +44,7 @@ export var gameConfig = {
     Level3Scene,
     Level4Scene,
     LevelClearScene,
+    WeddingScene,
     AllClearScene,
   ],
 };
