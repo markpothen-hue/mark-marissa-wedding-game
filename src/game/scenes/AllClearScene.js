@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
 import { playMusic, playSound } from '../audio';
-import { FONT, setPad, spark } from '../kit';
+import { FONT, setPad, spark, burst } from '../kit';
 import { gameState } from '../state';
 
 // THE END (final screen): the reception. Everyone does the same goofy synchronized
 // dance around the cake (Fantastic Mr. Fox style) while the couple says thank you.
 // The dance never stops; only the small PLAY AGAIN button leaves.
 var FLOOR = 462;
-// 'cast' strip: frame = pose * 9 + person; poses 0 stand, 1 arms up, 2 fist pump
+// 'cast' strip: frame = pose * 9 + person; poses 0 stand, 1 arms up, 2 fist pump, 3 twirl, 4 clap
 var CAST = { AARON: 0, AMMA: 1, APPA: 2, LUKE: 3, DADA: 4, MAMA: 5, RUTH: 6, MARK: 7, MARISSA: 8 };
 var LINEUP = [['LUKE', 50], ['DADA', 115], ['MAMA', 180], ['RUTH', 245], ['MARK', 318], ['MARISSA', 482], ['AARON', 555], ['AMMA', 620], ['APPA', 690]];
 var SPEECH = [
@@ -17,8 +17,9 @@ var SPEECH = [
   ['MARISSA', 'WE LOVE YOU ALL SO MUCH!'],
   ['MARK', "NOW... LET'S DANCE!"],
 ];
-// the dance: one pose per beat, and everyone turns around every 8 beats
+// the dance: five 16-beat routines on loop
 var STEPS = [0, 1, 0, 2, 0, 1, 2, 1];
+var ROUTINES = ['line', 'wave', 'shuffle', 'twirl', 'spotlight'];
 
 export class AllClearScene extends Phaser.Scene {
   constructor() { super('AllClear'); }
@@ -103,17 +104,21 @@ export class AllClearScene extends Phaser.Scene {
     this.dancing = true;
     playMusic('title');
     playSound('clear');
-    var names = Object.keys(this.people);
+    var names = LINEUP.map(function(p) { return p[0]; });
+    this.baseX = {};
+    LINEUP.forEach(function(p) { self.baseX[p[0]] = p[1]; });
+    // the couple's special moves, shown in front of the cake during the spotlight
+    this.couple = this.add.sprite(400, FLOOR + 4, 'couple', 0).setOrigin(0.5, 1).setDepth(8).setScale(1.25).setVisible(false);
     var beat = 0;
     this.time.addEvent({ delay: 360, loop: true, callback: function() {
-      var pose = STEPS[beat % 8];
-      var turn = Math.floor(beat / 8) % 2 === 1;
-      names.forEach(function(k, i) {
-        var s = self.people[k];
-        s.setFrame(pose * 9 + CAST[k]);
-        s.setFlipX((s.x > 400) !== turn);
-        self.tweens.add({ targets: s, y: FLOOR - (pose ? 12 : 4), duration: 150, yoyo: true, ease: 'Quad.easeOut', delay: i % 2 ? 20 : 0 });
-      });
+      var routine = ROUTINES[Math.floor(beat / 16) % ROUTINES.length];
+      var b = beat % 16;
+      if (b === 0) self.enterRoutine(routine);
+      names.forEach(function(k, i) { self.move(routine, k, i, b); });
+      if (routine === 'spotlight') {
+        self.couple.setFrame(Math.floor(b / 4) % 2);
+        if (b % 4 === 0) { burst(self, 400, FLOOR - 90, 0xffb3d9, 12); self.tweens.add({ targets: self.couple, y: FLOOR - 6, duration: 180, yoyo: true }); }
+      }
       beat++;
     } });
 
@@ -131,6 +136,45 @@ export class AllClearScene extends Phaser.Scene {
 
   }
 
+  enterRoutine(routine) {
+    var self = this;
+    var spot = routine === 'spotlight';
+    this.couple.setVisible(spot);
+    ['MARK', 'MARISSA'].forEach(function(k) { self.people[k].setVisible(!spot); });
+    Object.keys(this.people).forEach(function(k) { self.people[k].x = self.baseX[k]; });
+  }
+
+  move(routine, k, i, b) {
+    var s = this.people[k];
+    var me = CAST[k];
+    var pose, hop = 4, flip = s.x > 400;
+    if (routine === 'line') {
+      pose = STEPS[b % 8];
+      hop = pose ? 12 : 4;
+      if (b >= 8) flip = !flip;
+    } else if (routine === 'wave') {
+      // a ripple runs down the line and back
+      var at = b < 9 ? b : 16 - b;
+      pose = at === i ? 1 : 4;
+      hop = at === i ? 22 : 3;
+    } else if (routine === 'shuffle') {
+      // Mr. Fox shuffle: everyone slides together, 4 beats each way
+      pose = b % 2 ? 4 : 0;
+      var dir = Math.floor(b / 4) % 2 ? -1 : 1;
+      this.tweens.add({ targets: s, x: this.baseX[k] + dir * 18, duration: 300, ease: 'Sine.easeInOut' });
+      flip = dir < 0;
+    } else if (routine === 'twirl') {
+      pose = b % 4 === 3 ? 1 : 3;
+      flip = b % 2 === 0;
+      hop = 8;
+    } else {
+      pose = 4;
+      hop = 6;
+    }
+    s.setFrame(pose * 9 + me).setFlipX(flip);
+    this.tweens.add({ targets: s, y: FLOOR - hop, duration: 150, yoyo: true, ease: 'Quad.easeOut', delay: i % 2 ? 20 : 0 });
+  }
+
   // ── The thank-you card, after the speech ──
   endCard() {
     var self = this;
@@ -144,8 +188,8 @@ export class AllClearScene extends Phaser.Scene {
     setPad('hint', { text: 'THANK YOU FOR PLAYING!' });
     // small corner button: the dance keeps going until someone actually wants to replay
     this.time.delayedCall(4000, function() {
-      var again = self.add.text(12, 492, 'PLAY AGAIN', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', backgroundColor: '#7a3a5a', padding: { x: 6, y: 5 } })
-        .setOrigin(0, 1).setDepth(19).setInteractive({ useHandCursor: true });
+      var again = self.add.text(12, 12, 'PLAY AGAIN', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', backgroundColor: '#7a3a5a', padding: { x: 6, y: 5 } })
+        .setOrigin(0, 0).setDepth(19).setInteractive({ useHandCursor: true });
       again.on('pointerdown', function(p, x, y, e) { e.stopPropagation(); self.restart(); });
     });
   }

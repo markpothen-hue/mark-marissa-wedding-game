@@ -730,7 +730,7 @@ FAMILY = [
     dict(kind='lehenga', hairstyle='updo', hair=BLK, skin=SKIN_L, skin2=SKIN_L2, main=SAGE, main2=(150, 176, 122), flower='P'),
 ]
 
-# The cast (tools/gen_family.py output in art/family): 9 people x 3 poses [stand, arms-up dance, fist pump].
+# The cast (tools/gen_family.py output in art/family): 9 people x 5 poses [stand, arms-up, fist pump, twirl, clap].
 # Frame = pose * 9 + person. Each person is scaled once from their standing height so poses line up.
 FAM_DIR = os.path.join(ROOT, 'art', 'family')
 CAST = [('aaron', 40), ('amma', 37), ('appa', 41), ('luke', 40), ('dada', 40), ('mama', 37), ('ruth', 37), ('mark', 41), ('marissa', 39)]
@@ -765,14 +765,15 @@ def shrink(im, k):
             r, g, b, a = px[x, y]
             px[x, y] = (r, g, b, 255 if a > 110 else 0)
     return sm
-CFW, CFH = 34, 50
+CFW, CFH = 40, 52
 if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
-    poses = [[], [], []]
+    SUFFIXES = ['', '-dance', '-pump', '-twirl', '-clap']
+    poses = [[] for _ in SUFFIXES]
     for n, h in CAST:
         stand = key_magenta(os.path.join(FAM_DIR, n + '.png'))
         bb = stand.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
         k = h / (bb[3] - bb[1])
-        for pi, suf in enumerate(['', '-dance', '-pump']):
+        for pi, suf in enumerate(SUFFIXES):
             path = os.path.join(FAM_DIR, n + suf + '.png')
             if not os.path.exists(path): path = os.path.join(FAM_DIR, n + '-dance.png')
             f = shrink(key_magenta(path) if suf else stand, k)
@@ -781,7 +782,7 @@ if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
             c = Image.new('RGBA', (CFW, CFH), (0, 0, 0, 0))
             c.paste(f, ((CFW - f.width) // 2, CFH - f.height))
             poses[pi].append(c)
-    strip_save(poses[0] + poses[1] + poses[2], 'cast')
+    strip_save(sum(poses, []), 'cast')
     heroes = []
     for n, h in (('hero-mark', 41), ('hero-marissa', 39)):
         im = key_magenta(os.path.join(FAM_DIR, n + '.png'))
@@ -791,6 +792,20 @@ if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
         c.paste(f, ((CFW - f.width) // 2, CFH - f.height))
         heroes.append(c)
     strip_save(heroes, 'hero')
+    def fit(path, h, fw, fh):
+        im = key_magenta(path)
+        bb = im.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
+        f = shrink(im, h / (bb[3] - bb[1]))
+        if f.width > fw or f.height > fh:
+            f.thumbnail((fw, fh), Image.NEAREST)
+        c = Image.new('RGBA', (fw, fh), (0, 0, 0, 0))
+        c.paste(f, ((fw - f.width) // 2, fh - f.height))
+        return c
+    # clergy row under the cross, left to right
+    strip_save([fit(os.path.join(FAM_DIR, 'clergy', n + '.png'), h, 34, 48) for n, h in
+                (('fr-alb', 40), ('fr-white', 40), ('bishop', 41), ('fr-green', 40), ('fr-beard', 40))], 'clergy')
+    # the couple's special dance moves (lift, dip)
+    strip_save([fit(os.path.join(FAM_DIR, n + '.png'), 44, 56, 50) for n in ('couple-lift', 'couple-dip')], 'couple')
     pr = key_magenta(os.path.join(FAM_DIR, 'priest.png'))
     bb = pr.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
     save(shrink(pr, 40 / (bb[3] - bb[1])), 'priest')

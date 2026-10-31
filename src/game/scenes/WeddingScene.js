@@ -11,7 +11,11 @@ var BG_W = 1143;          // church art scaled to the 500px game height
 var FLOOR = 492;
 var ALTAR_X = 900;        // the crucifix + baldachin
 var START_X = 110;
-var STOP_X = 838;         // where Marissa ends up, facing Mark
+var STOP_X = 790;         // where the walk ends; she then steps up to Mark
+var BRIDE_X = ALTAR_X - 34, GROOM_X = ALTAR_X + 34;
+// clergy row under the cross, left to right ('clergy' strip frames)
+var CLERGY = [['FR-ALB', -134], ['FR-WHITE', -68], ['BISHOP', 0], ['FR-GREEN', 68], ['FR-BEARD', 134]];
+var STEP_Y = FLOOR - 48;  // the altar step the clergy stand on
 var BEAT = 60 / 88 * 1000; // one quarter note of the wedding march
 var CAST = { AARON: 0, AMMA: 1, APPA: 2, LUKE: 3, DADA: 4, MAMA: 5, RUTH: 6, MARK: 7, MARISSA: 8 };
 // family cheering from the front of the pews as she passes: [name, x, line]
@@ -36,9 +40,14 @@ export class WeddingScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, BG_W, 500);
     this.add.image(0, 0, 'bg-church').setOrigin(0).setDisplaySize(BG_W, 500);
 
-    // Mark + the priest waiting at the altar, under the cross
-    this.priest = this.add.image(ALTAR_X, FLOOR - 40, 'priest').setOrigin(0.5, 1).setScale(1.3).setDepth(3);
-    this.mark = this.cast('MARK', 958);
+    // Mark + all the clergy waiting at the altar, under the cross
+    this.clergy = {};
+    CLERGY.forEach(function(c, i) {
+      self.clergy[c[0]] = self.add.sprite(ALTAR_X + c[1], STEP_Y, 'clergy', i).setOrigin(0.5, 1).setScale(0.92).setDepth(3);
+    });
+    this.priest = this.clergy['FR-GREEN'];   // the celebrant
+    this.bishop = this.clergy.BISHOP;
+    this.mark = this.cast('MARK', GROOM_X + 30);
     this.mark.setFlipX(true);
 
     // family at the front of the pews
@@ -186,19 +195,39 @@ export class WeddingScene extends Phaser.Scene {
     // Amma & Appa give her away, then step aside
     this.say(this.appa, 'TAKE GOOD CARE OF HER!', 1600);
     this.time.delayedCall(1700, function() {
-      self.tweens.add({ targets: self.amma, x: STOP_X - 260, duration: 900 });
-      self.tweens.add({ targets: self.appa, x: STOP_X - 210, duration: 900 });
-      self.tweens.add({ targets: self.marissa, x: STOP_X + 4, duration: 600 });
-      self.tweens.add({ targets: self.mark, x: STOP_X + 112, duration: 600 });
+      // Amma & Appa take their seats in the front pew
+      self.tweens.add({ targets: self.amma, x: 668, y: FLOOR - 62, scale: 0.82, duration: 900, onComplete: function() { self.amma.setDepth(2); } });
+      self.tweens.add({ targets: self.appa, x: 708, y: FLOOR - 62, scale: 0.82, duration: 900, onComplete: function() { self.appa.setDepth(2); } });
+      self.tweens.add({ targets: self.marissa, x: BRIDE_X, duration: 700 });
+      self.tweens.add({ targets: self.mark, x: GROOM_X, duration: 700 });
     });
     var lines = [
       [this.priest, 'DO YOU, MARK, TAKE MARISSA TO BE YOUR WIFE?'],
       [this.mark, 'I DO!'],
       [this.priest, 'AND DO YOU, MARISSA, TAKE MARK TO BE YOUR HUSBAND?'],
       [this.marissa, 'I DO!'],
-      [this.priest, 'THE RINGS, PLEASE...'],
     ];
-    this.time.delayedCall(2800, function() { self.talk(lines, function() { self.startRing(); }); });
+    this.time.delayedCall(2800, function() { self.talk(lines, function() { self.blessing(); }); });
+  }
+
+  // the bishop steps forward and blesses them (hands over their heads)
+  blessing() {
+    var self = this;
+    var b = this.bishop;
+    this.tweens.add({ targets: b, y: FLOOR - 26, scale: 1, duration: 700, ease: 'Sine.easeInOut', onStart: function() { b.setDepth(4); } });
+    this.time.delayedCall(800, function() {
+      // they bow their heads
+      self.tweens.add({ targets: self.marissa, angle: 10, y: FLOOR + 3, duration: 400 });
+      self.tweens.add({ targets: self.mark, angle: -10, y: FLOOR + 3, duration: 400 });
+      self.time.addEvent({ delay: 120, repeat: 14, callback: function() {
+        spark(self, ALTAR_X + Phaser.Math.Between(-50, 50), FLOOR - 90 - Phaser.Math.Between(0, 30));
+      } });
+      self.talk([[b, 'MAY GOD BLESS YOUR MARRIAGE, ALWAYS.'], [self.priest, 'THE RINGS, PLEASE...']], function() {
+        self.tweens.add({ targets: [self.marissa, self.mark], angle: 0, y: FLOOR, duration: 300 });
+        self.tweens.add({ targets: b, y: STEP_Y, scale: 0.92, duration: 600, onComplete: function() { b.setDepth(3); } });
+        self.startRing();
+      });
+    });
   }
 
   talk(lines, done) {
@@ -275,7 +304,7 @@ export class WeddingScene extends Phaser.Scene {
     var bonus = this.tries === 1 ? 1000 : 500;
     this.score += bonus; gameState.coins += bonus;
     this.scoreText.setText('SCORE ' + this.score);
-    var ring = this.add.image(this.mark.x - 20, FLOOR - 56, 'ring').setDepth(70).setScale(1.4);
+    var ring = this.add.image(this.mark.x - 16, FLOOR - 56, 'ring').setDepth(70).setScale(1.4);
     this.tweens.add({ targets: ring, x: this.marissa.x + 14, y: FLOOR - 46, duration: 500, ease: 'Quad.easeOut',
       onComplete: function() {
         spark(self, ring.x, ring.y); burst(self, ring.x, ring.y, 0xffd84a, 16);
@@ -294,8 +323,8 @@ export class WeddingScene extends Phaser.Scene {
       self.talk([[self.priest, 'I NOW PRONOUNCE YOU HUSBAND AND WIFE!'], [self.priest, 'YOU MAY NOW KISS THE BRIDE!']], function() {
         self.phase = 'done';
         // the kiss: lean in, big heart
-        self.tweens.add({ targets: self.marissa, x: self.marissa.x + 22, duration: 400, ease: 'Sine.easeInOut' });
-        self.tweens.add({ targets: self.mark, x: self.mark.x - 22, duration: 400, ease: 'Sine.easeInOut',
+        self.tweens.add({ targets: self.marissa, x: self.marissa.x + 12, duration: 400, ease: 'Sine.easeInOut' });
+        self.tweens.add({ targets: self.mark, x: self.mark.x - 12, duration: 400, ease: 'Sine.easeInOut',
           onComplete: function() {
             var heart = self.add.image((self.mark.x + self.marissa.x) / 2, FLOOR - 100, 'heart').setDepth(80).setScale(0.5);
             self.tweens.add({ targets: heart, scale: 3, y: FLOOR - 230, duration: 700, ease: 'Back.easeOut' });
