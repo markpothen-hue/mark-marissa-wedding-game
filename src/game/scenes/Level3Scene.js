@@ -108,7 +108,21 @@ export class Level3Scene extends Phaser.Scene {
   spawnSpecial() {
     var x = GAME_WIDTH + 60;
     var lane = Phaser.Math.Between(0, 2);
-    if (this.specialN++ % 2 === 0) {
+    var airDist = this.speed * 2 * AIR_V / AIR_G;   // how far you travel while airborne
+    var wantRamp = this.specialN % 2 === 0;
+    if (wantRamp) {
+      // only use a lane that's empty from just before the ramp to past where you land
+      var self = this;
+      var clear = [0, 1, 2].filter(function(l) {
+        return !self.things.some(function(t) {
+          return t.lane === l && !t.cleared && t.kind !== 'heart' && t.x > x - 320 && t.x < x + airDist + 260;
+        });
+      });
+      if (clear.length) lane = clear[Phaser.Math.Between(0, clear.length - 1)];
+      else wantRamp = false;   // no clean runway: drop a bottle instead, try the ramp next time
+    }
+    if (wantRamp) {
+      this.specialN++;
       var ramp = this.add.image(x, LANES[lane] + 2, 'ramp').setOrigin(0.5, 1).setDepth(5 + lane * 3);
       this.things.push({ kind: 'ramp', x: x, lane: lane, y: LANES[lane], spr: ramp, w: 60 });
       this.tweens.add({ targets: ramp, scaleY: 1.06, duration: 300, yoyo: true, repeat: -1 });
@@ -118,12 +132,14 @@ export class Level3Scene extends Phaser.Scene {
         this.addHeart(x + 40 + this.speed * t, lane, Math.max(30, AIR_V * t - AIR_G / 2 * t * t));
       }
     } else {
+      if (this.specialN % 2 === 1) this.specialN++;
       var tok = this.add.image(x, LANES[lane] - 44, 'bottle').setDepth(6 + lane * 3);
       this.tweens.add({ targets: tok, y: LANES[lane] - 56, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       this.tweens.add({ targets: tok, angle: 12, duration: 200, yoyo: true, repeat: -1 });
       this.things.push({ kind: 'turbo', x: x, lane: lane, y: LANES[lane], spr: tok, w: 34 });
     }
-    this.nextWave = Math.max(this.nextWave, this.speed * 1.6);
+    // hold the next wave until well after you'd land (it used to arrive right at the landing spot)
+    this.nextWave = Math.max(this.nextWave, wantRamp ? airDist + 480 : this.speed * 1.6);
   }
 
   startTurbo() {
@@ -416,7 +432,7 @@ export class Level3Scene extends Phaser.Scene {
       if (t.spin) { t.x -= 90 * s; t.spr.rotation -= s * 8; }
       if (t.kind === 'squirrel' && !this.done) {
         t.nextHop -= dt;
-        if (t.nextHop <= 0 && t.x < 700 && t.x > PX_ + 60) {
+        if (t.nextHop <= 0 && t.x < 700 && t.x > PX_ + 60 && !this.air) {   // no lane swaps under you mid-flight
           t.nextHop = 700;
           var nl = t.lane === 1 ? (Math.random() < 0.5 ? 0 : 2) : 1;
           t.lane = nl; t.y = LANES[nl];
@@ -436,7 +452,7 @@ export class Level3Scene extends Phaser.Scene {
       if (Math.abs(t.x - PX_) > (t.w + 50) / 2) continue;
 
       if (t.kind === 'ramp') {
-        if (!t.used && this.hop < 10 && Math.abs(t.x - PX_) < 24) {
+        if (!t.used && this.hop < 40 && Math.abs(t.x - PX_) < 24) {
           t.used = true;
           this.air = true;
           this.hopV = AIR_V;
