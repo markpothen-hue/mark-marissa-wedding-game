@@ -30,7 +30,8 @@ export class Level4Scene extends Phaser.Scene {
     this.pickups = [];
     this.boss = null;
     this.script = [
-      [2, 'line', 120], [5.5, 'line', 360], [9, 'rain', 5], [11, 'apple', 220], [13, 'vee'],
+      [1.2, 'line', 140], [2.6, 'line', 340], [4.2, 'throwers'], [6, 'rain', 6], [7.5, 'vee'],
+      [9.5, 'line', 240], [11, 'apple', 220], [12, 'rain', 5], [13, 'vee'],
       [18, 'line', 200], [18.6, 'line', 330], [21, 'throwers'], [24, 'apple', 300], [25, 'rain', 7],
       [28, 'vee'], [31, 'throwers'], [33, 'line', 140], [33.5, 'line', 380], [36, 'rain', 8], [37, 'apple', 180],
       [BOSS_AT, 'boss'],
@@ -98,7 +99,8 @@ export class Level4Scene extends Phaser.Scene {
   }
 
   addFoe(o) {
-    o.spr = (o.key ? this.add.image(o.x, o.y, o.key) : this.add.sprite(o.x, o.y, 'raccoon-run').play('raccoon-run')).setDepth(8).setFlipX(!o.key);
+    // raccoons ride in little hot-air balloons; pinecones are just pinecones
+    o.spr = (o.key ? this.add.image(o.x, o.y, o.key) : this.add.sprite(o.x, o.y, 'balloon-raccoon').play({ key: 'balloon-bob', startFrame: Phaser.Math.Between(0, 1) })).setDepth(8);
     o.baseY = o.y;
     o.age = 0;
     o.pts = o.pts || 150;
@@ -108,7 +110,7 @@ export class Level4Scene extends Phaser.Scene {
   }
 
   spawnBoss() {
-    var b = this.add.image(GAME_WIDTH + 120, 250, 'raccoon').setScale(4).setFlipX(true).setDepth(9);
+    var b = this.add.sprite(GAME_WIDTH + 120, 250, 'balloon-boss').play('boss-bob').setScale(2.6).setDepth(9);
     this.boss = { spr: b, hp: 70, max: 70, phase: 0, t: 0, atk: 1500, x: GAME_WIDTH + 120, y: 250 };
     flashScreen(this, 0x7a3cff, 0.4);
     playMusic('boss');
@@ -170,7 +172,7 @@ export class Level4Scene extends Phaser.Scene {
           var fo = this.foes[f];
           if (rectsHit(sh.x, sh.y, 12, 12, fo.x, fo.y, fo.w, fo.h)) { this.damageFoe(fo, f); gone = true; break; }
         }
-        if (!gone && this.boss && this.boss.hp > 0 && rectsHit(sh.x, sh.y, 12, 12, this.boss.x, this.boss.y, 150, 120)) {
+        if (!gone && this.boss && this.boss.hp > 0 && rectsHit(sh.x, sh.y, 12, 12, this.boss.x, this.boss.y, 130, 190)) {
           this.damageBoss(sh.x, sh.y); gone = true;
         }
       }
@@ -185,7 +187,7 @@ export class Level4Scene extends Phaser.Scene {
       else o.x += o.vx * s;
       o.y = o.vy ? o.y + o.vy * s : o.baseY + (o.amp ? Math.sin(o.age * o.freq + (o.ph || 0)) * o.amp : 0);
       if (o.spin) o.spr.rotation += s * 4;
-      else o.spr.rotation = Math.sin(o.age * 10) * 0.1;
+      else o.spr.rotation = Math.sin(o.age * 3) * 0.08;   // gentle balloon sway
       o.spr.setPosition(o.x, o.y);
       if (o.throws && !this.done) {
         o.throwT -= dt;
@@ -240,7 +242,7 @@ export class Level4Scene extends Phaser.Scene {
     b.t += s;
     var targetX = GAME_WIDTH - 130;
     if (b.x > targetX) b.x -= 80 * s;
-    b.y = 250 + Math.sin(b.t * (b.hp < b.max / 2 ? 1.6 : 1)) * 140;
+    b.y = 240 + Math.sin(b.t * (b.hp < b.max / 2 ? 1.6 : 1)) * 120;
     b.spr.setPosition(b.x, b.y).rotation = Math.sin(b.t * 6) * 0.05;
     if (b.x > targetX + 5 || this.done) return;
     b.atk -= dt;
@@ -248,7 +250,7 @@ export class Level4Scene extends Phaser.Scene {
       var angry = b.hp < b.max / 2;
       b.phase = (b.phase + 1) % 3;
       if (b.phase === 0) {
-        for (var i = -2; i <= 2; i++) this.enemyShot(b.x - 60, b.y, 260, i * 70);
+        for (var i = -2; i <= 2; i++) this.enemyShot(b.x - 40, b.y + 60, 260, i * 70);
       } else if (b.phase === 1) {
         var self = this;
         for (var r = 0; r < (angry ? 7 : 5); r++) {
@@ -260,7 +262,7 @@ export class Level4Scene extends Phaser.Scene {
         var dx = this.px - b.x, dy = (this.py - 30) - b.y, len = Math.hypot(dx, dy) || 1;
         for (var k = 0; k < (angry ? 3 : 2); k++) {
           this.time.delayedCall(k * 180, function() {
-            if (this.boss && this.boss.hp > 0) this.enemyShot(this.boss.x - 60, this.boss.y, 0, 0, dx / len * 320, dy / len * 320);
+            if (this.boss && this.boss.hp > 0) this.enemyShot(this.boss.x - 40, this.boss.y + 60, 0, 0, dx / len * 320, dy / len * 320);
           }, null, this);
         }
       }

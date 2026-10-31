@@ -552,4 +552,56 @@ hud = [
 ]
 save(ascii_img(hud), 'hud-heart')
 save(ascii_img([r.replace('R', 'K').replace('w', 'K').replace('r', 'k') for r in hud]), 'hud-heart-empty')
+
+# ── Raccoons in little hot-air balloons (carpet level) ──
+def balloon_raccoon(stripes, band, bob, crown=False):
+    W, H = 28, 40
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    cx, cy, rx, ry = 13.5, 10, 11, 10.5
+    for y in range(22):
+        for x in range(W):
+            dx, dy = (x - cx) / rx, (y - cy) / (ry if y < cy else ry * 1.25)
+            d = dx * dx + dy * dy
+            if d <= 1:
+                img.putpixel((x, y), PAL[stripes[int((x - cx + rx) / 4.5) % len(stripes)]] + (255,))
+    for y in range(22):          # band + outline + shine
+        for x in range(W):
+            if img.getpixel((x, y))[3] and y in (13, 14):
+                img.putpixel((x, y), PAL[band] + (255,))
+    px = img.load()
+    for y in range(22):
+        for x in range(W):
+            if px[x, y][3]:
+                for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+                    if not (0 <= nx < W and 0 <= ny < H) or not px[nx, ny][3]:
+                        img.putpixel((x, y), PAL['k'] + (255,)); break
+    for x, y in ((8, 4), (7, 5), (7, 6), (9, 4)):
+        img.putpixel((x, y), PAL['w'] + (255,))
+    # ropes down to the basket
+    for y in range(20, 29):
+        img.putpixel((9, y), PAL['b'] + (255,)); img.putpixel((18, y), PAL['b'] + (255,))
+    # cute raccoon face peeking over the rim, paws on the basket
+    face = ascii_img([
+        '.kk......kk.',
+        'kgGk....kGgk',
+        'kgGGggggGGgk',
+        '.gGGGGGGGGg.',
+        'gkkkGGGGkkkg',
+        'kkwkkGGkkwkk',
+        'gkkkGwwGkkkg',
+        '.gGGwkkwGGg.',
+        '..gGwwwwGg..',
+        '..kgggggggk.',
+    ])
+    img.alpha_composite(face, (8, 20 + bob))
+    # wicker basket in front
+    basket = ['kGGkkkkkkGGk', 'kBnBnBnBnBnk', 'kbBbBbBbBbBk', 'kBnBnBnBnBnk', 'kbBbBbBbBbBk', '.kkkkkkkkkk.']
+    img.alpha_composite(ascii_img(basket), (8, 29))
+    if crown:
+        cr = ascii_img(['.Y.Y.Y.', '.YYYYY.', 'YYrYrYY'])
+        img.alpha_composite(cr, (10, 17 + bob))
+    return img
+
+strip_save([balloon_raccoon('pPwP', 'Y', 0), balloon_raccoon('pPwP', 'Y', 1)], 'balloon-raccoon')
+strip_save([balloon_raccoon('vVwV', 'Y', 0, True), balloon_raccoon('vVwV', 'Y', 1, True)], 'balloon-boss')
 print('sprites written to', OUT)

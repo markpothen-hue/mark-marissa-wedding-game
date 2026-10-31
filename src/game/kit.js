@@ -19,6 +19,7 @@ var STRIPS = {
   wheel: [34, 34], carpet: [76, 20], puff: [18, 18], spark: [14, 14],
   'mark-poses': [70, 80], 'marissa-poses': [82, 80],
   'squirrel-run': [52, 36], 'raccoon-run': [44, 36], pigeon: [32, 24], lionbody: [36, 26],
+  'balloon-raccoon': [56, 80], 'balloon-boss': [56, 80],
 };
 
 export function preloadPx(scene) {
@@ -38,6 +39,8 @@ export function setupPx(scene) {
   a.create({ key: 'puff', frames: a.generateFrameNumbers('puff', { start: 0, end: 2 }), frameRate: 14, hideOnComplete: true });
   a.create({ key: 'squirrel-run', frames: a.generateFrameNumbers('squirrel-run', { start: 0, end: 1 }), frameRate: 8, repeat: -1 });
   a.create({ key: 'raccoon-run', frames: a.generateFrameNumbers('raccoon-run', { start: 0, end: 1 }), frameRate: 7, repeat: -1 });
+  a.create({ key: 'balloon-bob', frames: a.generateFrameNumbers('balloon-raccoon', { start: 0, end: 1 }), frameRate: 4, repeat: -1 });
+  a.create({ key: 'boss-bob', frames: a.generateFrameNumbers('balloon-boss', { start: 0, end: 1 }), frameRate: 3, repeat: -1 });
   a.create({ key: 'pigeon-flap', frames: a.generateFrameNumbers('pigeon', { start: 0, end: 1 }), frameRate: 10, repeat: -1 });
   a.create({ key: 'lion-walk', frames: a.generateFrameNumbers('lionbody', { start: 0, end: 1 }), frameRate: 6, repeat: -1 });
   a.create({ key: 'spark', frames: a.generateFrameNumbers('spark', { start: 0, end: 2 }), frameRate: 18, yoyo: true, hideOnComplete: true });
