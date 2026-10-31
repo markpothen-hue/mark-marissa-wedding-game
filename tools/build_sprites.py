@@ -819,6 +819,59 @@ if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
         strip_save(group(['squirrel-run1', 'squirrel-run2', 'squirrel-throw'], 21, 34, 26, mirror=('squirrel-throw',)), 'squirrel-run')
         strip_save(group(['pigeon-perch', 'pigeon-coo', 'pigeon-up', 'pigeon-down'], 18, 26, 26, mirror=('pigeon-down',)), 'pigeon')
         strip_save(group(['cyclist-violet', 'cyclist-teal', 'cyclist-gold'], 46, 50, 48, enclosed=True), 'cyclist')
+    # Level 1 (Fort Lee Historic Park, on the Palisades) platform + ground from Gemini (art/level1). The ledge is cut into left cap / repeating middle / right cap;
+    # the ground strip is cropped to the promenade + seawall and its edges blended so it tiles.
+    L1A = os.path.join(ROOT, 'art', 'level1')
+    if os.path.exists(os.path.join(L1A, 'ledge.png')):
+        lg = key_magenta(os.path.join(L1A, 'ledge.png'))
+        lg = lg.crop(lg.getbbox())
+        # start the art just above the standing surface (the first mostly-solid row), so grass tips poke up ~3px
+        surf = next(y for y in range(lg.height) if sum(1 for x in range(lg.width // 4, 3 * lg.width // 4) if lg.getpixel((x, y))[3] > 0) > lg.width * 0.4)
+        lg = lg.crop((0, max(0, surf - int(lg.height * 0.06)), lg.width, lg.height))
+        k = 22 / lg.height                       # whole ledge art -> 22 src px (44 on screen)
+        W = lg.width
+        cap = int(W * 0.11)
+        # pick the repeat window in the middle whose two edge columns match best
+        def col(x): return [lg.getpixel((x, y)) for y in range(0, lg.height, 3)]
+        def diff(a, b): return sum(abs(p[0] - q[0]) + abs(p[1] - q[1]) + abs(p[2] - q[2]) + abs(p[3] - q[3]) for p, q in zip(a, b))
+        best = None
+        for st in range(int(W * 0.3), int(W * 0.45), 3):
+            for per in range(int(W * 0.14), int(W * 0.24), 3):
+                d = diff(col(st), col(st + per))
+                if best is None or d < best[0]: best = (d, st, per)
+        _, st, per = best
+        for name, box in (('ledge-l', (0, 0, cap, lg.height)), ('ledge-m', (st, 0, st + per, lg.height)), ('ledge-r', (W - cap, 0, W, lg.height))):
+            piece = lg.crop(box)
+            sm = piece.resize((max(1, round(piece.width * k)), 22), Image.BOX)
+            px = sm.load()
+            for y in range(sm.height):
+                for x in range(sm.width):
+                    r, g, b, a = px[x, y]
+                    px[x, y] = (r, g, b, 255 if a > 110 else 0)
+            save(sm, name)
+        print('ledge pieces', cap * k, per * k)
+    if os.path.exists(os.path.join(L1A, 'ground.png')):
+        gr = Image.open(os.path.join(L1A, 'ground.png')).convert('RGB')
+        rows = [sum(sum(gr.getpixel((x, y))) for x in range(0, gr.width, 16)) for y in range(gr.height)]
+        lit = [y for y, v in enumerate(rows) if v > 40 * (gr.width // 16)]
+        gr = gr.crop((0, lit[0], gr.width, lit[-1] + 1))
+        gs = gr.resize((round(gr.width * 35 / gr.height), 35), Image.BOX)
+        n = gs.width // 8                        # blend the last n columns into the first n so it tiles
+        out = gs.crop((0, 0, gs.width - n, 35)).convert('RGBA')
+        for x in range(n):
+            t = x / n
+            for y in range(35):
+                a = gs.getpixel((gs.width - n + x, y)); b = gs.getpixel((x, y))
+                out.putpixel((x, y), tuple(round(a[i] * (1 - t) + b[i] * t) for i in range(3)) + (255,))
+        save(out, 'ground')
+    # Level 1 enemies: a chipmunk popping out of a hollow stump, a rolling Revolutionary War cannonball, and acorns
+    for name, h, enclosed in (('chipmunk', 17, False), ('stump', 16, False), ('cannonball', 19, False), ('acorn', 7, False)):
+        path = os.path.join(L1A, name + '.png')
+        if not os.path.exists(path): continue
+        im = key_magenta(path)
+        if enclosed: im = key_all(im)
+        bb = im.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
+        save(shrink(im, h / (bb[3] - bb[1])), name)
     pr = key_magenta(os.path.join(FAM_DIR, 'priest.png'))
     bb = pr.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
     save(shrink(pr, 40 / (bb[3] - bb[1])), 'priest')

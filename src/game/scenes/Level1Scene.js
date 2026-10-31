@@ -30,7 +30,7 @@ var MOVERS = [         // [x, y, tiles, dx, dy, ms]
 ];
 var SQUIRRELS = [[700, 560, 880], [2000, 1860, 2380], [3500, 2780, 3600], [5150, 4840, 5480], [5950, 5660, 6150]];
 var PIGEONS = [[2660, 250], [4950, 230], [6050, 240]];   // [x, perch y]
-var CANS = [1520, 3100, 4250, 5380];                                              // trash cans with raccoons
+var CANS = [1520, 3100, 4250, 5380];                                              // hollow stumps with chipmunks
 var THROWERS = [[2268, 230], [4202, 235], [5268, 285]];                            // acorn squirrels on ledges
 var ONEUPS = [[2560, 300], [4700, 250]];
 var BOULDERS = [[1100, 1650], [2900, 3560], [4900, 5460], [5700, 6150]]; // [trigger x, spawn x]
@@ -91,9 +91,9 @@ export class Level1Scene extends Phaser.Scene {
 
     // Ledges (one-way: you can jump up through them)
     this.ledges = this.physics.add.staticGroup();
-    LEDGES.forEach(function(l, li) {
+    LEDGES.forEach(function(l) {
       var w = l[2] * 32;
-      self.drawLedge(l[0], l[1], w, li, false);
+      self.drawLedge(l[0], l[1], w, false);
       var z = self.add.zone(l[0] + w / 2, l[1] + 6, w, 12);
       self.physics.add.existing(z, true);
       z.body.checkCollision.down = z.body.checkCollision.left = z.body.checkCollision.right = false;
@@ -102,9 +102,9 @@ export class Level1Scene extends Phaser.Scene {
 
     // Moving ledges
     this.movers = [];
-    MOVERS.forEach(function(m, mi) {
+    MOVERS.forEach(function(m) {
       var w = m[2] * 32;
-      var vis = self.drawLedge(m[0], m[1], w, 50 + mi, true);
+      var vis = self.drawLedge(m[0], m[1], w, true);
       var body = self.physics.add.image(m[0] + w / 2, m[1] + 6, null).setVisible(false);
       body.body.setSize(w, 12).setAllowGravity(false).setImmovable(true);
       body.body.checkCollision.down = body.body.checkCollision.left = body.body.checkCollision.right = false;
@@ -175,13 +175,13 @@ export class Level1Scene extends Phaser.Scene {
       self.pigeons.push({ spr: spr, state: 'perch', t: 0, x0: pg[0], y0: pg[1] });
     });
 
-    // Trash cans: solid to stand on; a raccoon pops out on a rhythm
+    // Hollow stumps: solid to stand on; a chipmunk pops out on a rhythm
     CANS.forEach(function(x, i) {
-      var can = self.add.image(x, GY, 'trashcan').setOrigin(0.5, 1).setDepth(4);
-      var z = self.add.zone(x, GY - 17, 26, 34);
+      var can = self.add.image(x, GY + 2, 'stump').setOrigin(0.5, 1).setDepth(4);
+      var z = self.add.zone(x, GY - 15, 36, 30);
       self.physics.add.existing(z, true);
       self.solids.add(z);
-      var rc = self.add.sprite(x, GY - 6, 'raccoon-run', 0).setOrigin(0.5, 1).setDepth(3);
+      var rc = self.add.image(x, GY + 6, 'chipmunk').setOrigin(0.5, 1).setDepth(3);
       self.cans.push({ can: can, rc: rc, x: x, t: i * 900, up: false, alive: true });
     });
 
@@ -378,53 +378,17 @@ export class Level1Scene extends Phaser.Scene {
     this.bg.tilePositionX = this.cameras.main.scrollX * 0.35;
   }
 
-  // A date-night balcony ledge: stone cap with a flower-box lip, wood base, ivy, and string lights underneath.
-  // Moving ledges get gold trim. Local coords: top-left at (x, y), 16px tall plus what hangs below.
-  drawLedge(x, y, w, seed, moving) {
-    var g = this.add.graphics({ x: x, y: y }).setDepth(1);
-    var rnd = function(i) { var v = Math.sin((seed + 1) * 97.3 + i * 13.7) * 43758.5; return v - Math.floor(v); };
-    // string lights (behind the ledge)
-    g.lineStyle(1, 0x2a2030);
-    var bulbs = [];
-    g.beginPath();
-    for (var bx = 6; bx <= w - 6; bx += 2) {
-      var tt = (bx - 6) / Math.max(1, w - 12), by = 17 + Math.sin(tt * Math.PI) * 10;
-      if (bx === 6) g.moveTo(bx, by); else g.lineTo(bx, by);
-      if ((bx - 6) % 18 === 8) bulbs.push([bx, by + 2]);
-    }
-    g.strokePath();
-    bulbs.forEach(function(bp, i) {
-      var col = [0xffd36b, 0xffe9a8, 0xffb3d9][i % 3];
-      g.fillStyle(col, 0.28).fillCircle(bp[0], bp[1], 5);
-      g.fillStyle(col).fillCircle(bp[0], bp[1], 2);
-    });
-    // ivy hanging off the front
-    for (var vx = 10 + Math.floor(rnd(1) * 20); vx < w - 8; vx += 34 + Math.floor(rnd(vx) * 20)) {
-      var len = 6 + Math.floor(rnd(vx + 3) * 14);
-      g.lineStyle(2, 0x3f7a3a).lineBetween(vx, 14, vx + (rnd(vx + 5) > 0.5 ? 2 : -2), 14 + len);
-      for (var lf = 16; lf < 14 + len; lf += 5) g.fillStyle(lf % 2 ? 0x5aa04a : 0x4f8a3e).fillCircle(vx + (lf % 10 ? 2 : -2), lf, 2);
-    }
-    // wood base with plank seams
-    g.fillStyle(0x000000, 0.25).fillRect(4, 16, w - 8, 3);
-    g.fillStyle(moving ? 0x7a5236 : 0x6b4a3a).fillRect(2, 6, w - 4, 10);
-    g.lineStyle(1, 0x4a3028);
-    for (var px = 22; px < w - 4; px += 24) g.lineBetween(px, 8, px, 15);
-    g.lineStyle(2, 0x1a1020).strokeRect(2, 6, w - 4, 10);
-    // iron brackets at the ends
-    g.fillStyle(0x2a2030).fillTriangle(6, 16, 14, 16, 6, 24).fillTriangle(w - 6, 16, w - 14, 16, w - 6, 24);
-    // stone cap
-    g.fillStyle(moving ? 0xffe7b0 : 0xf0dfc0).fillRoundedRect(0, 0, w, 8, 3);
-    g.fillStyle(0xfff6e0).fillRect(3, 1, w - 6, 2);
-    if (moving) g.fillStyle(0xd9a640).fillRect(2, 5, w - 4, 2);
-    g.lineStyle(2, 0x1a1020).strokeRoundedRect(0, 0, w, 8, 3);
-    // flowers along the front lip
-    var cols = [0xff9ec7, 0xd9b3ff, 0xffe066, 0xffffff];
-    for (var fx = 7; fx < w - 4; fx += 11) {
-      g.fillStyle(0x4f8a3e).fillCircle(fx + 3, 8, 2);
-      g.fillStyle(cols[Math.floor(rnd(fx) * 4)]).fillCircle(fx, 7, 2.5);
-      g.fillStyle(0xffe066).fillRect(fx, 7, 1, 1);
-    }
-    return g;
+  // A Palisades rock ledge (Gemini art, 3-slice): end caps + a repeating middle. The grass top sits ~3px below
+  // the art's top edge, so the art is drawn from y - 3. Moving ledges glow gold.
+  drawLedge(x, y, w, moving) {
+    var c = this.add.container(x, y).setDepth(1);
+    var top = -3, cap = 24;
+    var mid = Math.max(0, w - cap * 2 + 8);
+    c.add(this.add.tileSprite(cap - 4, top, mid, 44, 'ledge-m').setOrigin(0));
+    c.add(this.add.image(-4, top, 'ledge-l').setOrigin(0));
+    c.add(this.add.image(w + 4, top, 'ledge-r').setOrigin(1, 0));
+    if (moving) c.each(function(o) { o.setTint(0xffe7b0); });
+    return c;
   }
 
   updateMovers(time) {
@@ -462,7 +426,7 @@ export class Level1Scene extends Phaser.Scene {
           e.throwT = 2400;
           e.setFrame(1);
           this.time.delayedCall(180, function(en) { if (en.active) en.setFrame(0); }, [e]);
-          var a = this.acorns.create(e.x, e.y - 10, 'pebble').setDepth(6);
+          var a = this.acorns.create(e.x, e.y - 10, 'acorn').setDepth(6);
           a.setVelocity(Phaser.Math.Clamp(dx * 1.1, -280, 280), -380);
           a.body.setSize(10, 10);
         }
@@ -474,9 +438,9 @@ export class Level1Scene extends Phaser.Scene {
   }
 
   spawnBoulder(x) {
-    var e = this.enemies.create(x, GY - 140, 'boulder');
+    var e = this.enemies.create(x, GY - 140, 'cannonball');   // a runaway cannonball from the old fort
     e.kind = 'boulder';
-    e.body.setCircle(16, 4, 1);
+    e.body.setCircle(17, 2, 2);
     e.body.setAllowGravity(true);
     e.setVelocityX(-180).setBounce(0.3).setDepth(5);
     e.setFrictionX(0);
@@ -676,7 +640,7 @@ export class Level1Scene extends Phaser.Scene {
       if (!c.alive) continue;
       c.t = (c.t + dt) % 3200;
       // hidden 0-1500, peek 1500-1800, up 1800-3000, sink 3000-3200
-      var target = c.t < 1500 ? GY - 2 : c.t < 1800 ? GY - 14 : c.t < 3000 ? GY - 30 : GY - 2;
+      var target = c.t < 1500 ? GY + 6 : c.t < 1800 ? GY - 12 : c.t < 3000 ? GY - 30 : GY + 6;
       c.rc.y += (target - c.rc.y) * Math.min(1, dt / 70);
       c.rc.flipX = this.body.x > c.x;
       c.up = c.rc.y < GY - 24;
