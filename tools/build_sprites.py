@@ -35,9 +35,22 @@ def pixelate(im, h):
     return sm
 
 
-# ── Characters ──
-save(pixelate(Image.open(os.path.join(SRC, 'char-mark.png')), 40), 'mark')
-save(pixelate(Image.open(os.path.join(SRC, 'char-marissa.png')), 40), 'marissa')
+# ── Characters: the still (menus) + a pose strip [run0..run3, jump, duck] for gameplay ──
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from run_cycle import pose_frames  # noqa: E402
+
+WAIST = {'mark': 23, 'marissa': 28}   # art-pixel row where the legs start
+for who in ('mark', 'marissa'):
+    still = pixelate(Image.open(os.path.join(SRC, 'char-%s.png' % who)), 40)
+    save(still, who)
+    frames = pose_frames(still, WAIST[who])
+    fw, fh = frames[0].size
+    sheet_ = Image.new('RGBA', (fw * len(frames), fh), (0, 0, 0, 0))
+    for i, f in enumerate(frames):
+        sheet_.paste(f, (i * fw, 0))
+    save(sheet_, who + '-poses')
+    print(who + '-poses frame', fw * SCALE, fh * SCALE)
 
 # ── Items sheet: 4 cols x 2 rows ──
 sheet = Image.open(os.path.join(SRC, 'obstacles.png'))

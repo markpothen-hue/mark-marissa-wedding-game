@@ -14,7 +14,10 @@ var PX = [
   'lantern', 'crate', 'bench', 'puddle', 'pinecone', 'leaf', 'ring', 'bullet', 'pebble', 'flag', 'checkpoint',
   'ledge', 'ground', 'street', 'path', 'bikeframe', 'dot', 'hud-heart', 'hud-heart-empty',
 ];
-var STRIPS = { wheel: [34, 34], carpet: [76, 20], puff: [18, 18], spark: [14, 14] };
+var STRIPS = {
+  wheel: [34, 34], carpet: [76, 20], puff: [18, 18], spark: [14, 14],
+  'mark-poses': [70, 80], 'marissa-poses': [82, 80],
+};
 
 export function preloadPx(scene) {
   PX.forEach(function(k) { scene.load.image(k, 'assets/px/' + k + '.png'); });
@@ -74,7 +77,10 @@ export class Rig {
   constructor(scene, x, y, key, scale) {
     this.scene = scene;
     this.base = scale || 1;
-    this.sprite = scene.add.image(x, y, key || gameState.char).setOrigin(0.5, 1).setDepth(10);
+    key = key || gameState.char;
+    this.poses = scene.textures.exists(key + '-poses');
+    this.sprite = (this.poses ? scene.add.sprite(x, y, key + '-poses', 0) : scene.add.image(x, y, key))
+      .setOrigin(0.5, 1).setDepth(10);
     this.t = 0;
     this.squash = 0;
     this.hurt = 0;
@@ -93,28 +99,31 @@ export class Rig {
   flashHurt(ms) { this.hurt = ms || 1400; }
 
   // mode: idle | run | rise | fall | duck | ride | fly
+  // Pose frames: 0 stride, 1 passing, 2 mirrored stride, 3 passing, 4 jump (knees up), 5 duck
   update(dt, x, y, mode, speed01) {
     var s = this.sprite;
     this.mode = mode;
     this.t += dt * (0.6 + 0.9 * (speed01 || 0));
-    var sx = 1, sy = 1, rot = 0, oy = 0;
+    var sx = 1, sy = 1, rot = 0, oy = 0, frame = 1;
     if (mode === 'run') {
-      var ph = this.t * 0.018;
-      oy = -Math.abs(Math.sin(ph)) * 5;
-      rot = Math.sin(ph) * 0.06 + 0.06 * this.facing;
-      sy = 1 + Math.abs(Math.cos(ph)) * 0.05; sx = 2 - sy;
+      var ph = this.t * 0.016;
+      // body is lowest on the stride frames and highest as the legs pass
+      frame = Math.round(ph / (Math.PI / 2)) % 4;
+      oy = -Math.abs(Math.sin(ph)) * 4;
+      rot = 0.08 * this.facing + Math.sin(ph * 2) * 0.02;
       this.puffTimer -= dt;
       if (this.puffTimer <= 0) { this.puffTimer = 180; puff(this.scene, x - 18 * this.facing, y - 4, 0.6); }
     } else if (mode === 'ride' || mode === 'fly') {
       var p2 = this.t * 0.012;
       oy = Math.sin(p2) * (mode === 'fly' ? 3 : 1.5);
       rot = this.lean;
+      frame = mode === 'ride' ? 4 : 5;   // knees up on the bike, crouched on the carpet
     } else if (mode === 'rise') {
-      sy = 1.12; sx = 0.9; rot = 0.05 * this.facing;
+      frame = 4; sy = 1.06; sx = 0.95; rot = 0.05 * this.facing;
     } else if (mode === 'fall') {
-      sy = 0.96; sx = 1.04; rot = -0.03 * this.facing;
+      frame = 2; rot = -0.03 * this.facing;
     } else if (mode === 'duck') {
-      sy = 0.55; sx = 1.25;
+      frame = 5; sy = 0.92; sx = 1.06;
     } else {
       sy = 1 + Math.sin(this.t * 0.005) * 0.025;
     }
@@ -122,6 +131,8 @@ export class Rig {
       sy *= 1 - 0.28 * this.squash; sx *= 1 + 0.28 * this.squash;
       this.squash = Math.max(0, this.squash - dt / 140);
     }
+    if (this.poses) s.setFrame(frame);
+    else if (mode === 'duck') { sy *= 0.6; sx *= 1.2; }
     s.setPosition(Math.round(x), Math.round(y + oy));
     s.setScale(this.base * sx * this.facing, this.base * sy);
     s.rotation = rot;
