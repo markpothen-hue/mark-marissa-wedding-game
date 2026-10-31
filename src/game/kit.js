@@ -19,7 +19,7 @@ var STRIPS = {
   wheel: [34, 34], carpet: [76, 20], puff: [18, 18], spark: [14, 14],
   'mark-poses': [70, 80], 'marissa-poses': [82, 80],
   'squirrel-run': [52, 36], 'raccoon-run': [44, 36], pigeon: [32, 24], lionbody: [36, 26],
-  'balloon-raccoon': [56, 80], 'balloon-boss': [56, 80], family: [48, 82],
+  'balloon-raccoon': [56, 80], 'balloon-boss': [56, 80], cast: [68, 100],
 };
 
 export function preloadPx(scene) {

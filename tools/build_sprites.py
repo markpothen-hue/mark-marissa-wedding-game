@@ -729,11 +729,11 @@ FAMILY = [
     dict(kind='saree', hairstyle='updo', hair=BLK, skin=SKIN, skin2=SKIN2, main=ROSE, main2=(190, 110, 115), flower='P'),
     dict(kind='lehenga', hairstyle='updo', hair=BLK, skin=SKIN_L, skin2=SKIN_L2, main=SAGE, main2=(150, 176, 122), flower='P'),
 ]
-strip_save([person(f) for f in FAMILY], 'family')
 
-# Generated family art (tools/gen_family.py) replaces the hand-placed fallback above when present
+# The cast (tools/gen_family.py output in art/family): 9 people x 3 poses [stand, arms-up dance, fist pump].
+# Frame = pose * 9 + person. Each person is scaled once from their standing height so poses line up.
 FAM_DIR = os.path.join(ROOT, 'art', 'family')
-FAM_ORDER = [('aaron', 40), ('amma', 37), ('appa', 41), ('luke', 40), ('dada', 40), ('mama', 37), ('ruth', 37)]
+CAST = [('aaron', 40), ('amma', 37), ('appa', 41), ('luke', 40), ('dada', 40), ('mama', 37), ('ruth', 37), ('mark', 41), ('marissa', 39)]
 def key_magenta(path):
     im = Image.open(path).convert('RGBA')
     W, H = im.size
@@ -755,15 +755,33 @@ def key_magenta(path):
         if y > 0: stack.append((x, y - 1))
         if y < H - 1: stack.append((x, y + 1))
     return im
-if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in FAM_ORDER):
-    frames = [pixelate(key_magenta(os.path.join(FAM_DIR, n + '.png')), h) for n, h in FAM_ORDER]
-    FW, FH = 24, max(f.height for f in frames)   # fixed frame width so the strip size never drifts
-    padded = []
-    for f in frames:
-        c = Image.new('RGBA', (FW, FH), (0, 0, 0, 0))
-        c.paste(f, ((FW - f.width) // 2, FH - f.height))
-        padded.append(c)
-    strip_save(padded, 'family')
+def shrink(im, k):
+    bb = im.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
+    im = im.crop(bb)
+    sm = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.BOX)
+    px = sm.load()
+    for y in range(sm.height):
+        for x in range(sm.width):
+            r, g, b, a = px[x, y]
+            px[x, y] = (r, g, b, 255 if a > 110 else 0)
+    return sm
+CFW, CFH = 34, 50
+if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
+    poses = [[], [], []]
+    for n, h in CAST:
+        stand = key_magenta(os.path.join(FAM_DIR, n + '.png'))
+        bb = stand.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
+        k = h / (bb[3] - bb[1])
+        for pi, suf in enumerate(['', '-dance', '-pump']):
+            path = os.path.join(FAM_DIR, n + suf + '.png')
+            if not os.path.exists(path): path = os.path.join(FAM_DIR, n + '-dance.png')
+            f = shrink(key_magenta(path) if suf else stand, k)
+            if f.width > CFW or f.height > CFH:
+                f = f.resize((min(f.width, CFW), min(f.height, CFH)), Image.NEAREST)
+            c = Image.new('RGBA', (CFW, CFH), (0, 0, 0, 0))
+            c.paste(f, ((CFW - f.width) // 2, CFH - f.height))
+            poses[pi].append(c)
+    strip_save(poses[0] + poses[1] + poses[2], 'cast')
 
 # Four-tier wedding cake with burgundy calla lilies (reception finale)
 cake_rows = []

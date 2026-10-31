@@ -7,7 +7,7 @@ def part(path):
     return {'inlineData': {'mimeType': mime, 'data': base64.b64encode(open(path, 'rb').read()).decode()}}
 def gen(out, prompt, images):
     body = {'contents': [{'role': 'user', 'parts': [part(p) for p in images] + [{'text': prompt}]}],
-            'generationConfig': {'responseModalities': ['TEXT', 'IMAGE'], 'imageConfig': {'aspectRatio': '1:1'}}}
+            'generationConfig': {'responseModalities': ['TEXT', 'IMAGE'], 'imageConfig': {'aspectRatio': os.environ.get('AR', '1:1')}}}
     url = 'https://aiplatform.googleapis.com/v1/publishers/google/models/%s:generateContent?key=%s' % (MODEL, KEY)
     req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={'Content-Type': 'application/json'})
     try:

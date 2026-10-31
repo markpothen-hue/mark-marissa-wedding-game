@@ -17,6 +17,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('bg-level1', 'assets/bg-level1.png');
     this.load.image('bg-level2', 'assets/bg-level2.png');
     this.load.image('bg-level3', 'assets/bg-level3.png');
+    this.load.image('bg-ending', 'assets/bg-ending.jpg');
     this.load.image('bg-level4', 'assets/bg-level4.png');
     preloadPx(this);
   }

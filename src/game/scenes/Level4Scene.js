@@ -379,7 +379,7 @@ export class Level4Scene extends Phaser.Scene {
     parts.push({ o: carpet, dx: 0, dy: 8 });
     FAMILY.forEach(function(name, i) {
       var dx = -138 + i * 46;
-      var p = self.add.sprite(startX + dx, y, 'family', i).setOrigin(0.5, 1).setDepth(21);
+      var p = self.add.sprite(startX + dx, y, 'cast', i).setOrigin(0.5, 1).setDepth(21);
       var t = self.add.text(startX + dx, y - 90, name, { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(22);
       self.tweens.add({ targets: p, scaleY: 0.94, duration: 200 + i * 20, yoyo: true, repeat: -1 });
       parts.push({ o: p, dx: dx, dy: 0, who: true }, { o: t, dx: dx, dy: -90 });
