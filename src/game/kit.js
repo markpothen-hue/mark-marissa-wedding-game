@@ -235,7 +235,7 @@ export function warn(scene, y, ms, x) {
 
 // Extra life
 export function grabOneUp(scene, x, y) {
-  if (scene.lives < 3) { scene.lives++; gameState.lives = scene.lives; popup(scene, x, y - 20, '1-UP!', '#ffffff'); }
+  if (scene.lives < 3) { scene.lives++; gameState.lives = scene.lives; popup(scene, x, y - 20, 'HYDRATED! 1-UP', '#8fd3ff'); }
   else { addScore(scene, 500); popup(scene, x, y - 20, '+500'); }
   playSound('clear');
   burst(scene, x, y, 0xffffff, 14);

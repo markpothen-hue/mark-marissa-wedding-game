@@ -188,7 +188,7 @@ export class Level1Scene extends Phaser.Scene {
     // 1-ups
     this.oneups = this.physics.add.group({ allowGravity: false });
     ONEUPS.forEach(function(o) {
-      var h = self.oneups.create(o[0], o[1], 'oneup').setScale(2);
+      var h = self.oneups.create(o[0], o[1], 'bottle');   // Mark's water bottle = extra life
       self.tweens.add({ targets: h, y: o[1] - 10, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     });
 

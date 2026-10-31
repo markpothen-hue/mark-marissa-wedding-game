@@ -33,11 +33,11 @@ export class Level4Scene extends Phaser.Scene {
     this.pickups = [];
     this.boss = null;
     this.script = [
-      [1, 'line', 140], [1.8, 'line', 360], [3.2, 'throwers'], [4.5, 'rain', 7], [6, 'vee'],
-      [7.5, 'line', 250], [8.5, 'apple', 220], [9.5, 'throwers'], [10.5, 'rain', 6], [12, 'vee'],
+      [1, 'line', 140], [1.8, 'line', 360], [3.2, 'throwers'], [4.5, 'line', 200], [6, 'vee'],
+      [7.5, 'line', 250], [8.5, 'bottle', 220], [9.5, 'throwers'], [10.5, 'line', 300], [12, 'vee'],
       [13, 'line', 150], [13.4, 'line', 350],
-      [16, 'apple', 300], [17, 'throwers'], [18, 'line', 200], [18.4, 'line', 330], [20, 'vee'], [21, 'rain', 9],
-      [23, 'throwers'], [24, 'line', 140], [24.5, 'line', 380], [26, 'vee'], [27, 'apple', 180], [29, 'rain', 8],
+      [16, 'bottle', 300], [17, 'throwers'], [18, 'line', 200], [18.4, 'line', 330], [20, 'vee'], [21, 'throwers'],
+      [23, 'throwers'], [24, 'line', 140], [24.5, 'line', 380], [26, 'vee'], [27, 'bottle', 180], [29, 'vee'],
       [30.5, 'throwers'], [BOSS_AT, 'boss'],
     ];
   }
@@ -88,14 +88,9 @@ export class Level4Scene extends Phaser.Scene {
         [130, 250, 370].forEach(function(y, k) {
           self.addFoe({ x: GAME_WIDTH + 40 + k * 90, y: y, vx: -120, amp: 20, freq: 2, hp: 3, stopAt: 560 + k * 60, throws: true });
         });
-      } else if (e[1] === 'rain') {
-        for (var r = 0; r < e[2]; r++) {
-          this.time.delayedCall(r * 420, function() {
-            self.addFoe({ x: Phaser.Math.Between(260, GAME_WIDTH + 60), y: -20, vx: -60, vy: 230, key: 'pinecone', hp: 1, pts: 50, spin: true });
-          });
-        }
-      } else if (e[1] === 'apple') {
-        var a = this.add.image(GAME_WIDTH + 30, e[2], 'apple').setDepth(8);
+      } else if (e[1] === 'bottle') {
+        // Mark's giant water bottle upgrades your shot
+        var a = this.add.image(GAME_WIDTH + 30, e[2], 'bottle').setDepth(8);
         this.pickups.push({ spr: a, x: a.x, y: e[2] });
       } else if (e[1] === 'boss') {
         this.spawnBoss();
@@ -104,7 +99,7 @@ export class Level4Scene extends Phaser.Scene {
   }
 
   addFoe(o) {
-    // Canada geese flap in formation; pinecones and tennis balls are just things falling
+    // Canada geese flap in formation
     o.spr = (o.key ? this.add.image(o.x, o.y, o.key) : this.add.sprite(o.x, o.y, 'goose').play({ key: 'goose-flap', startFrame: Phaser.Math.Between(0, 1) })).setDepth(8);
     o.baseY = o.y;
     o.age = 0;
@@ -229,13 +224,13 @@ export class Level4Scene extends Phaser.Scene {
       p.x -= 120 * s; p.y += Math.sin(this.t * 4) * 0.6;
       p.spr.setPosition(p.x, p.y).rotation = Math.sin(this.t * 5) * 0.2;
       if (p.x < -30) { p.spr.destroy(); this.pickups.splice(a, 1); continue; }
-      if (rectsHit(this.px, this.py - 30, 40, 50, p.x, p.y, 26, 26)) {
+      if (rectsHit(this.px, this.py - 30, 40, 50, p.x, p.y, 34, 50)) {
         p.spr.destroy(); this.pickups.splice(a, 1);
         this.powerLv = Math.min(3, this.powerLv + 1);
         addScore(this, 300);
         playSound('clear');
         flashScreen(this, 0x7a3cff, 0.35);
-        banner(this, this.powerLv === 3 ? 'MAX POWER!' : 'POWER UP!', '#d9b3ff');
+        banner(this, 'HYDRATED!', '#8fd3ff', this.powerLv === 3 ? 'MAX POWER' : 'SHOT POWER UP');
       }
     }
 
@@ -274,12 +269,11 @@ export class Level4Scene extends Phaser.Scene {
           this.enemyShot(b.x - 30, b.y, 0, 0, Math.cos(ang) * 200, Math.sin(ang) * 200, 'frosting');
         }
       } else if (b.phase === 1) {
-        var self = this;
-        for (var r = 0; r < (angry ? 7 : 5); r++) {
-          this.time.delayedCall(r * 260, function() {
-            self.addFoe({ x: Phaser.Math.Between(120, GAME_WIDTH - 200), y: -20, vx: -30, vy: 260, key: 'tennisball', hp: 1, pts: 50, spin: true });
-          });
+        // they call in the geese
+        for (var r = 0; r < (angry ? 5 : 4); r++) {
+          this.addFoe({ x: GAME_WIDTH + 40 + r * 55, y: Phaser.Math.Between(140, 420), vx: -210, amp: 30, freq: 3, ph: r, hp: 2 });
         }
+        popup(this, b.x - 40, b.y - 110, 'HONK HONK!', '#ffffff');
       } else {
         // Rufus: tennis balls lobbed in arcs that drop onto you
         for (var k = 0; k < (angry ? 4 : 3); k++) {
