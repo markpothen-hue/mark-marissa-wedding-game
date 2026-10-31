@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { playMusic } from '../audio';
 import {
   Rig, Hud, Controls, makeParallax, burst, spark, popup, banner,
-  finishLevel, addScore, gameOver, playSound, gameState, GAME_WIDTH, GAME_HEIGHT, FONT,
+  setCheckpoint, getCheckpoint, finishLevel, addScore, gameOver, playSound, gameState, GAME_WIDTH, GAME_HEIGHT, FONT,
 } from '../kit';
 
 // LEVEL 3: "Central Park Ride" — 3-lane bike dodger.
@@ -22,7 +22,8 @@ export class Level3Scene extends Phaser.Scene {
     this.lives = gameState.lives > 0 ? gameState.lives : 3;
     this.done = false;
     this.dead = false;
-    this.dist = 0;
+    this.dist = getCheckpoint(2) || 0;
+    this.cpDone = this.dist > 0;
     this.speed = 280;
     this.lane = 1;
     this.laneY = LANES[1];
@@ -66,7 +67,8 @@ export class Level3Scene extends Phaser.Scene {
 
     this.hud = new Hud(this, 'CENTRAL PARK RIDE', { progress: 'FINISH' });
     this.controls = new Controls(this, 'lanes');
-    banner(this, 'RIDE!', '#ffe066', "DON'T EAT THE COOKIES");
+    if (this.cpDone) banner(this, 'CHECKPOINT', '#ffe066', 'PICKING UP HALFWAY');
+    else banner(this, 'RIDE!', '#ffe066', "DON'T EAT THE COOKIES");
   }
 
   // ── Waves ──
@@ -131,6 +133,12 @@ export class Level3Scene extends Phaser.Scene {
     if (!this.done && !this.dead) {
       this.speed = 280 + 240 * Math.min(1, this.dist / GOAL);
       this.dist += this.speed * s;
+      if (!this.cpDone && this.dist > GOAL * 0.5) {
+        this.cpDone = true;
+        setCheckpoint(2, Math.round(GOAL * 0.5));
+        popup(this, PX_, this.laneY - 110, 'CHECKPOINT!', '#ffffff');
+        playSound('select');
+      }
       this.nextWave -= this.speed * s;
       if (this.nextWave <= 0 && this.dist < GOAL - 700) this.spawnWave();
       if (this.dist > GOAL - 700 && !this.finishLine) this.spawnFinish();
@@ -253,16 +261,43 @@ export class Level3Scene extends Phaser.Scene {
   }
 
   spawnFinish() {
-    var x = GAME_WIDTH + 150;
-    var a = this.add.rectangle(x, LANES[2] + 4, 10, 170, 0xffffff).setOrigin(0.5, 1).setDepth(20);
-    var b = this.add.rectangle(x, LANES[0] - 140, 10, 30, 0xffffff).setOrigin(0.5, 1).setDepth(2);
-    var flagRow = this.add.rectangle(x, LANES[0] - 160, 14, 120, 0x1a1020).setOrigin(0.5, 0).setDepth(2);
-    var txt = this.add.text(x, LANES[0] - 176, 'FINISH', { fontFamily: FONT, fontSize: '12px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(21);
-    var checker = [];
-    for (var i = 0; i < 12; i++) {
-      checker.push(this.add.rectangle(x, LANES[0] - 24 + i * 9, 10, 9, i % 2 ? 0x1a1020 : 0xffffff).setDepth(2 + Math.floor(i / 4) * 3));
+    // A big wedding flower arch over the path, with a finish tape on the ground under it
+    var x = GAME_WIDTH + 200;
+    var base = LANES[0] - 8, half = 120, postH = 150, rise = 60;
+    var arch = this.add.graphics().setDepth(2);
+    arch.x = x;
+    arch.fillStyle(0xf3ead8).fillRect(-half - 7, base - postH, 14, postH).fillRect(half - 7, base - postH, 14, postH);
+    arch.lineStyle(2, 0x5a4a3a).strokeRect(-half - 7, base - postH, 14, postH).strokeRect(half - 7, base - postH, 14, postH);
+    var pts = [];
+    for (var k = 0; k <= 24; k++) {
+      var a = Math.PI * (1 - k / 24);
+      pts.push({ x: Math.cos(a) * half, y: base - postH - Math.sin(a) * rise });
     }
-    this.finishLine = [a, b, flagRow, txt].concat(checker);
+    arch.lineStyle(12, 0x3f7a3a);
+    for (k = 0; k < 24; k++) arch.lineBetween(pts[k].x, pts[k].y, pts[k + 1].x, pts[k + 1].y);
+    var cols = [0xff9ec7, 0xffffff, 0xffe066, 0xc9a7ff];
+    for (k = 0; k <= 24; k++) {
+      arch.fillStyle(0x5aa04a).fillCircle(pts[k].x + (k % 2 ? 6 : -6), pts[k].y + 4, 4);
+      arch.fillStyle(cols[k % 4]).fillCircle(pts[k].x, pts[k].y - 2, 6);
+      arch.fillStyle(0xffe066).fillCircle(pts[k].x, pts[k].y - 2, 2);
+    }
+    // flowers climbing the posts
+    for (k = 0; k < 8; k++) {
+      var fy = base - 14 - k * 18;
+      arch.fillStyle(cols[(k + 1) % 4]).fillCircle(-half + (k % 2 ? 6 : -6), fy, 4).fillCircle(half + (k % 2 ? -6 : 6), fy, 4);
+    }
+    // banner hangs from the top
+    var by = base - postH - rise + 8;
+    arch.lineStyle(2, 0x5a4a3a).lineBetween(-50, by, -50, by + 16).lineBetween(50, by, 50, by + 16);
+    arch.fillStyle(0xfff6e0).fillRect(-74, by + 16, 148, 32);
+    arch.lineStyle(3, 0x3f7a3a).strokeRect(-74, by + 16, 148, 32);
+    var txt = this.add.text(x, by + 33, 'FINISH', { fontFamily: FONT, fontSize: '16px', color: '#3f7a3a' }).setOrigin(0.5).setDepth(3);
+    // finish tape across the path
+    var tape = [];
+    for (var i = 0; i < 12; i++) {
+      tape.push(this.add.rectangle(x, LANES[0] - 20 + i * 9.5, 10, 9, i % 2 ? 0x1a1020 : 0xffffff).setDepth(2));
+    }
+    this.finishLine = [tape[0], arch, txt].concat(tape.slice(1));
   }
 
   finish() {
