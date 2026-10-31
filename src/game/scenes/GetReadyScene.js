@@ -13,7 +13,7 @@ var LEVEL_NAMES = [
 var LEVEL_SUBTITLES = [
   'PLATFORMER: STOMP, JUMP, GRAB THE RING',
   'RUNNER: JUMP CRATES, DUCK LANTERNS',
-  "BIKE: SWITCH LANES, DON'T EAT COOKIES",
+  "BIKE: HIT RAMPS, GRAB TURBO, NO COOKIES",
   'SHOOTER: SAVE THE WEDDING CAKE',
 ];
 var SCENE_KEYS = ['Level1', 'Level2', 'Level3', 'Level4'];
@@ -50,7 +50,7 @@ export class GetReadyScene extends Phaser.Scene {
     overlay.fillRect(0, 0, width, height);
 
     // Level number
-    this.add.text(cx, cy - 80, 'LEVEL ' + (idx + 1), {
+    this.add.text(cx, cy - 80, 'LEVEL ' + [1, 0, 2, 3][idx], {
       fontFamily: FONT, fontSize: '9px', color: '#dddddd',
     }).setOrigin(0.5);
 

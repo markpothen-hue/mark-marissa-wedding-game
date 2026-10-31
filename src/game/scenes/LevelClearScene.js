@@ -95,7 +95,8 @@ export class LevelClearScene extends Phaser.Scene {
 
     // Auto-advance to next level (no map screen)
     this.time.delayedCall(500, function() {
-      var nextIdx = self.levelIndex + 1;
+      // Chinatown Dash (index 1) is cut from the run: Fort Lee -> Central Park -> Bear Mountain -> Wedding
+      var nextIdx = self.levelIndex === 0 ? 2 : self.levelIndex + 1;
       self.input.once('pointerdown', function() {
         playSound('select');
         if (nextIdx >= 4) {

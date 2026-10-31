@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { playMusic } from '../audio';
 import {
-  Rig, Hud, Controls, makeParallax, burst, spark, popup, banner,
+  Rig, Hud, Controls, makeParallax, burst, spark, popup, banner, warn,
   setCheckpoint, getCheckpoint, finishLevel, addScore, gameOver, playSound, gameState, GAME_WIDTH, GAME_HEIGHT, FONT,
 } from '../kit';
 
@@ -9,10 +9,19 @@ import {
 // UP/DOWN switches lanes, SPACE hops. Hop over low stuff (cookies, puddles),
 // switch lanes around benches, watch the squirrels — they change lanes on you.
 // The cookies are a trap. Do NOT eat the cookies. Grab hearts instead.
+// Specials: RAMPS launch you into big air over everything; the TURBO bolt
+// gives a few seconds of top speed where you smash straight through obstacles.
+// Set pieces: the lion dance parades through the park, and later the cycling
+// club blows past from behind ("ON YOUR LEFT!") — pick the lane they leave open.
 
 var LANES = [392, 434, 476];
 var PX_ = 180;
 var GOAL = 20000;
+var TURBO_MS = 4500;
+var AIR_V = 760, AIR_G = 1100;   // ramp launch: ~260px peak, ~1.4s airtime
+var LION_AT = 0.3;
+var PACK_AT = 0.72;
+var JERSEYS = [0x7a3cff, 0x2bb5a8, 0xffb000, 0x3f7a3a, 0x4a7bd8, 0xff9ec7];
 
 export class Level3Scene extends Phaser.Scene {
   constructor() { super('Level3'); }
@@ -33,6 +42,14 @@ export class Level3Scene extends Phaser.Scene {
     this.things = [];
     this.finishLine = null;
     this.combo = 0;
+    this.turbo = 0;
+    this.air = false;
+    this.nextSpecial = 2200;
+    this.specialN = 0;
+    this.lion = null;
+    this.lionDone = this.dist > GOAL * LION_AT;
+    this.pack = null;
+    this.packDone = this.dist > GOAL * PACK_AT;
   }
 
   create() {
@@ -62,6 +79,9 @@ export class Level3Scene extends Phaser.Scene {
     this.shadow = this.add.ellipse(0, 0, 70, 10, 0x000000, 0.25).setDepth(3);
     // your lane is lit, so it's obvious what's in your path
     this.laneBand = this.add.rectangle(0, LANES[1] - 4, GAME_WIDTH, 36, 0xffffff, 0.24).setOrigin(0, 0.5).setDepth(2);
+    this.makeTextures();
+    this.glow = this.add.ellipse(0, 0, 120, 60, 0xffe066, 0.35).setDepth(3).setVisible(false);
+    this.lines = this.add.graphics().setDepth(30);
     this.rig = new Rig(this, PX_, LANES[1], gameState.char);
     this.rig.sprite.setDepth(11);
 
@@ -69,6 +89,211 @@ export class Level3Scene extends Phaser.Scene {
     this.controls = new Controls(this, 'lanes');
     if (this.cpDone) banner(this, 'CHECKPOINT', '#ffe066', 'PICKING UP HALFWAY');
     else banner(this, 'RIDE!', '#ffe066', "DON'T EAT THE COOKIES");
+  }
+
+  makeTextures() {
+    if (!this.textures.exists('turbo-tok')) {
+      var g = this.make.graphics({ add: false });
+      g.fillStyle(0x1a1020).fillCircle(17, 17, 17);
+      g.fillStyle(0xffe066).fillCircle(17, 17, 14);
+      g.fillStyle(0xfff6c0).fillCircle(13, 12, 5);
+      g.fillStyle(0x1a1020).fillPoints([{ x: 19, y: 4 }, { x: 8, y: 19 }, { x: 16, y: 19 }, { x: 13, y: 30 }, { x: 26, y: 14 }, { x: 18, y: 14 }, { x: 22, y: 4 }], true);
+      g.fillStyle(0xffffff).fillPoints([{ x: 19, y: 7 }, { x: 11, y: 17 }, { x: 18, y: 17 }, { x: 15, y: 26 }, { x: 23, y: 16 }, { x: 16, y: 16 }, { x: 20, y: 7 }], true);
+      g.generateTexture('turbo-tok', 34, 34);
+      g.destroy();
+    }
+    if (!this.textures.exists('ramp')) {
+      var r = this.make.graphics({ add: false });
+      r.fillStyle(0x5a3a20).fillPoints([{ x: 0, y: 40 }, { x: 88, y: 40 }, { x: 88, y: 0 }], true);
+      r.fillStyle(0xc08850).fillPoints([{ x: 5, y: 38 }, { x: 85, y: 38 }, { x: 85, y: 5 }], true);
+      r.lineStyle(2, 0x8a5a30);
+      for (var k = 1; k < 5; k++) r.lineBetween(k * 17, 38, k * 17, 38 - k * 17 * 33 / 80);
+      r.fillStyle(0xffe066);
+      for (k = 0; k < 2; k++) r.fillPoints([{ x: 46 + k * 16, y: 28 }, { x: 54 + k * 16, y: 24 }, { x: 46 + k * 16, y: 20 }], true);
+      r.generateTexture('ramp', 88, 40);
+      r.destroy();
+    }
+  }
+
+  // Ramp (with a bench to sail over and a heart trail in the air) or a TURBO bolt
+  spawnSpecial() {
+    var x = GAME_WIDTH + 60;
+    var lane = Phaser.Math.Between(0, 2);
+    if (this.specialN++ % 2 === 0) {
+      var ramp = this.add.image(x, LANES[lane] + 2, 'ramp').setOrigin(0.5, 1).setDepth(5 + lane * 3);
+      this.things.push({ kind: 'ramp', x: x, lane: lane, y: LANES[lane], spr: ramp, w: 60 });
+      this.tweens.add({ targets: ramp, scaleY: 1.06, duration: 300, yoyo: true, repeat: -1 });
+      this.add3('bench', x + this.speed * 0.7, lane);   // you sail right over it
+      for (var i = 1; i <= 6; i++) {
+        var t = i * 0.2;
+        this.addHeart(x + 40 + this.speed * t, lane, Math.max(30, AIR_V * t - AIR_G / 2 * t * t));
+      }
+    } else {
+      var tok = this.add.image(x, LANES[lane] - 40, 'turbo-tok').setDepth(6 + lane * 3);
+      this.tweens.add({ targets: tok, y: LANES[lane] - 52, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.tweens.add({ targets: tok, angle: 12, duration: 200, yoyo: true, repeat: -1 });
+      this.things.push({ kind: 'turbo', x: x, lane: lane, y: LANES[lane], spr: tok, w: 34 });
+    }
+    this.nextWave = Math.max(this.nextWave, this.speed * 1.6);
+  }
+
+  startTurbo() {
+    this.turbo = TURBO_MS;
+    playSound('clear');
+    this.cameras.main.flash(180, 255, 240, 160);
+    banner(this, 'TURBO!', '#ffe066', 'SMASH RIGHT THROUGH');
+  }
+
+  smash(t) {
+    t.cleared = true;
+    t.gone = true;
+    addScore(this, 100);
+    playSound('stomp');
+    burst(this, t.x, t.y - 20, 0xffe066, 12);
+    popup(this, t.x, t.y - 60, 'SMASH +100', '#ffe066');
+    if (t.mark) t.mark.setVisible(false);
+    this.tweens.add({ targets: t.spr, y: t.y - 160, angle: 540, alpha: 0, duration: 600, ease: 'Quad.easeOut' });
+  }
+
+  // You can't be hurt while on TURBO, flying off a ramp, or still blinking from a hit
+  safe() { return this.done || this.dead || this.turbo > 0 || this.hop > 70 || this.rig.hurt > 0; }
+
+  // ── Lion dance: head picks a lane (with a warning), the body follows its path ──
+  startLion() {
+    var self = this;
+    this.lionDone = true;
+    banner(this, 'LION DANCE!', '#ffe066', 'STAY OUT OF ITS LANE');
+    var head = this.add.image(GAME_WIDTH + 80, LANES[1], 'lionhead').setOrigin(0.5, 1).setScale(2).setFlipX(true);
+    var segs = [];
+    for (var i = 0; i < 5; i++) {
+      segs.push(this.add.sprite(GAME_WIDTH + 160 + i * 64, LANES[1], 'lionbody').setOrigin(0.5, 1).setScale(2).play('lion-walk'));
+    }
+    this.lion = { head: head, segs: segs, lane: 1, laneY: LANES[1], t: 0, next: 1.4, hist: [], x: GAME_WIDTH + 80 };
+    this.time.addEvent({ delay: 300, repeat: 20, callback: function() { if (self.lion) playSound('stomp'); } });
+  }
+
+  updateLion(s) {
+    var L = this.lion;
+    L.t += s;
+    L.x -= (L.t < 2.2 ? 140 : 75) * s;
+    L.next -= s;
+    if (L.next <= 0 && L.x < GAME_WIDTH - 60) {
+      var nl = L.lane === 1 ? (Math.random() < 0.5 ? 0 : 2) : (Math.random() < 0.6 ? 1 : 2 - L.lane);
+      warn(this, LANES[nl] - 40, 600, 40);
+      L.lane = nl;
+      L.next = 1.5;
+    }
+    L.laneY += (LANES[L.lane] - L.laneY) * Math.min(1, s * 3);
+    L.hist.unshift(L.laneY);
+    if (L.hist.length > 200) L.hist.pop();
+    L.head.setPosition(L.x, L.laneY + Math.sin(L.t * 9) * 4).setDepth(this.depthFor(L.laneY) + 1);
+    L.head.rotation = Math.sin(L.t * 6) * 0.08;
+    var hits = [{ x: L.x, y: L.laneY, w: 70, body: false }];
+    for (var i = 0; i < L.segs.length; i++) {
+      var sy = L.hist[Math.min(L.hist.length - 1, (i + 1) * 9)];
+      var sx = L.x + 70 + i * 62;
+      L.segs[i].setPosition(sx, sy + Math.sin(L.t * 9 - (i + 1) * 0.8) * 4).setDepth(this.depthFor(sy));
+      hits.push({ x: sx, y: sy, w: 56, body: true });
+    }
+    // the head always hurts; the body can be hopped
+    if (!this.safe()) {
+      for (var h = 0; h < hits.length; h++) {
+        var c = hits[h];
+        if (Math.abs(c.y - this.laneY) < 20 && Math.abs(c.x - PX_) < (c.w + 24) / 2) {
+          if (c.body && this.hop > 46) continue;
+          this.hit({ kind: 'lion' });
+          break;
+        }
+      }
+    }
+    if (L.x + 70 + L.segs.length * 62 < -40) {
+      L.head.destroy();
+      L.segs.forEach(function(sg) { sg.destroy(); });
+      this.lion = null;
+      if (!this.done) {
+        addScore(this, 1000);
+        popup(this, GAME_WIDTH / 2, 160, 'LION DANCE CLEARED! +1000', '#ffe066');
+        burst(this, GAME_WIDTH / 2, 180, 0xffe066, 24);
+        playSound('clear');
+      }
+    }
+  }
+
+  depthFor(y) { return 5 + (y - LANES[0]) / (LANES[1] - LANES[0]) * 3; }
+
+  // ── Cycling club: rows of riders overtake you from behind, two lanes at a time ──
+  startPack() {
+    this.packDone = true;
+    banner(this, 'ON YOUR LEFT!', '#9be37a', 'THE CYCLING CLUB IS COMING');
+    this.pack = { riders: [], rows: 0, next: 1.8, free: Phaser.Math.Between(0, 2) };
+  }
+
+  makeCyclist(lane, x, jersey) {
+    var c = this.add.container(x, LANES[lane]).setDepth(5 + lane * 3 + 1);
+    var axle = -17;
+    var wb = this.add.sprite(-24, axle, 'wheel').play('wheel-spin');
+    var wf = this.add.sprite(24, axle, 'wheel').play('wheel-spin');
+    var fr = this.add.image(0, axle, 'bikeframe').setOrigin(0.5, 39 / 40);
+    var g = this.add.graphics();
+    var skin = [0x8a5a3c, 0xc8936a, 0x6b4430, 0xe0b48a][Phaser.Math.Between(0, 3)];
+    g.lineStyle(6, 0x2a2430).lineBetween(-6, -46, 2, -28).lineBetween(2, -28, -2, -18);   // legs
+    g.lineStyle(5, skin).lineBetween(-2, -24, -2, -18);
+    g.fillStyle(0x2a2430).fillRect(-12, -52, 14, 9);                                      // shorts
+    g.lineStyle(11, jersey).lineBetween(-6, -52, 12, -66);                                 // jersey, leaning in
+    g.lineStyle(2, 0xffffff).lineBetween(-4, -56, 10, -66);
+    g.lineStyle(4, skin).lineBetween(12, -64, 22, -48);                                    // arm to the bars
+    g.fillStyle(skin).fillCircle(18, -74, 7);                                              // head
+    g.fillStyle(jersey).fillEllipse(17, -79, 18, 9);                                       // helmet
+    g.lineStyle(1, 0x1a1020).strokeEllipse(17, -79, 18, 9);
+    g.fillStyle(0x1a1020).fillRect(19, -76, 6, 3);                                         // shades
+    c.add([wb, wf, fr, g]);
+    return { spr: c, lane: lane, x: x };
+  }
+
+  updatePack(s) {
+    var P = this.pack;
+    P.next -= s;
+    if (P.rows < 4 && P.next <= 0 && !this.done) {
+      // telegraph the two lanes they'll fill on the left edge, then send them
+      var free = P.free, self = this;
+      var lanes = [0, 1, 2].filter(function(l) { return l !== free; });
+      lanes.forEach(function(l) { warn(self, LANES[l] - 40, 900, 24); });
+      this.time.delayedCall(950, function() {
+        if (!self.pack) return;
+        lanes.forEach(function(l, k) {
+          for (var n = 0; n < 2; n++) {
+            var r = self.makeCyclist(l, -60 - n * 90 - k * 40, JERSEYS[(P.rows * 2 + k + n) % JERSEYS.length]);
+            self.pack.riders.push(r);
+          }
+        });
+        var lead = self.pack.riders[self.pack.riders.length - 4];
+        var shout = self.add.text(0, -100, 'ON YOUR LEFT!', {
+          fontFamily: FONT, fontSize: '10px', color: '#1a1020', backgroundColor: '#ffffff', padding: { x: 4, y: 3 },
+        }).setOrigin(0.5);
+        lead.spr.add(shout);
+        playSound('select');
+      });
+      P.rows++;
+      P.next = 2.3;
+      P.free = (free + Phaser.Math.Between(1, 2)) % 3;   // the open lane moves every row
+    }
+    for (var i = P.riders.length - 1; i >= 0; i--) {
+      var r = P.riders[i];
+      r.x += 300 * s;
+      r.spr.x = r.x;
+      r.spr.y = LANES[r.lane] + Math.sin(r.x * 0.05) * 1.5;
+      if (!this.safe() && r.lane === this.lane && Math.abs(r.x - PX_) < 44) this.hit({ kind: 'cyclist' });
+      if (r.x > GAME_WIDTH + 100) { r.spr.destroy(); P.riders.splice(i, 1); }
+    }
+    if (P.rows >= 4 && P.next < 0.9 && P.riders.length === 0) {
+      this.pack = null;
+      if (!this.done) {
+        addScore(this, 1000);
+        popup(this, GAME_WIDTH / 2, 160, 'KEPT UP WITH THE CLUB! +1000', '#9be37a');
+        burst(this, GAME_WIDTH / 2, 180, 0x9be37a, 24);
+        playSound('clear');
+      }
+    }
   }
 
   // ── Waves ──
@@ -131,7 +356,16 @@ export class Level3Scene extends Phaser.Scene {
     var s = dt / 1000;
 
     if (!this.done && !this.dead) {
-      this.speed = 280 + 240 * Math.min(1, this.dist / GOAL);
+      this.speed = (280 + 240 * Math.min(1, this.dist / GOAL)) * (this.turbo > 0 ? 1.9 : 1);
+      if (this.turbo > 0) {
+        this.turbo -= dt;
+        if (this.turbo <= 0) popup(this, PX_, this.laneY - 110, 'TURBO OVER', '#ffffff');
+      }
+      if (!this.lionDone && this.dist > GOAL * LION_AT) this.startLion();
+      if (!this.packDone && this.dist > GOAL * PACK_AT) this.startPack();
+      var setPiece = this.lion || this.pack;
+      if (!setPiece) this.nextSpecial -= this.speed * s;
+      if (this.nextSpecial <= 0 && this.dist < GOAL - 1800) { this.spawnSpecial(); this.nextSpecial = 2600; }
       this.dist += this.speed * s;
       if (!this.cpDone && this.dist > GOAL * 0.5) {
         this.cpDone = true;
@@ -139,7 +373,7 @@ export class Level3Scene extends Phaser.Scene {
         popup(this, PX_, this.laneY - 110, 'CHECKPOINT!', '#ffffff');
         playSound('select');
       }
-      this.nextWave -= this.speed * s;
+      if (!setPiece) this.nextWave -= this.speed * s;
       if (this.nextWave <= 0 && this.dist < GOAL - 700) this.spawnWave();
       if (this.dist > GOAL - 700 && !this.finishLine) this.spawnFinish();
 
@@ -154,8 +388,8 @@ export class Level3Scene extends Phaser.Scene {
     this.rig.lean *= 0.9;
     if (this.hopV !== 0 || this.hop > 0) {
       this.hop += this.hopV * s;
-      this.hopV -= 1700 * s;
-      if (this.hop <= 0) { this.hop = 0; this.hopV = 0; this.rig.land(0.5); }
+      this.hopV -= (this.air ? AIR_G : 1700) * s;
+      if (this.hop <= 0) { this.hop = 0; this.hopV = 0; this.air = false; this.rig.land(0.5); }
     }
 
     this.bg.tilePositionX += move * 0.25;
@@ -181,6 +415,18 @@ export class Level3Scene extends Phaser.Scene {
     this.laneBand.y = this.laneY - 4;
     this.shadow.setPosition(PX_, this.laneY - 2).setScale(1 - this.hop / 300);
     this.wheelB.anims.timeScale = this.wheelF.anims.timeScale = this.speed / 280;
+    // TURBO: golden glow under the bike + speed lines streaking past
+    var on = this.turbo > 0 && !this.done && !this.dead;
+    this.glow.setVisible(on).setPosition(PX_, by - 30).setAlpha(on ? 0.25 + Math.sin(time * 0.03) * 0.12 : 0);
+    this.lines.clear();
+    if (on) {
+      for (var sl = 0; sl < 14; sl++) {
+        this.lines.lineStyle(2, sl % 3 ? 0xffffff : 0xffe066, 0.55);
+        var ly = Phaser.Math.Between(60, 470), lx = Phaser.Math.Between(0, GAME_WIDTH);
+        this.lines.lineBetween(lx, ly, lx + Phaser.Math.Between(40, 120), ly);
+      }
+    }
+    if (this.air) this.frame.setRotation(-0.25 + Math.min(0.5, (AIR_V - this.hopV) / AIR_V * 0.25));
 
     // Cranks turn with the wheels; the legs swap on each half-turn
     if (!this.done && !this.dead) this.crankA += this.speed * s * 0.03;
@@ -219,6 +465,25 @@ export class Level3Scene extends Phaser.Scene {
       if (t.gone || this.done || this.dead || t.lane !== this.lane) continue;
       if (Math.abs(t.x - PX_) > (t.w + 50) / 2) continue;
 
+      if (t.kind === 'ramp') {
+        if (!t.used && this.hop < 10 && Math.abs(t.x - PX_) < 24) {
+          t.used = true;
+          this.air = true;
+          this.hopV = AIR_V;
+          playSound('jump');
+          addScore(this, 200);
+          popup(this, PX_, this.laneY - 120, 'BIG AIR! +200', '#ffe066');
+        }
+        continue;
+      }
+      if (t.kind === 'turbo') {
+        if (this.hop < 90) {
+          spark(this, t.x, t.spr.y);
+          t.spr.destroy(); this.things.splice(i, 1);
+          this.startTurbo();
+        }
+        continue;
+      }
       if (t.kind === 'heart') {
         if (Math.abs(this.hop - t.h) < 50) {
           this.combo++;
@@ -228,16 +493,21 @@ export class Level3Scene extends Phaser.Scene {
           spark(this, t.x, t.y);
           t.spr.destroy(); this.things.splice(i, 1);
         }
-      } else if (t.low && this.hop > 18) {
+      } else if (this.turbo > 0) {
+        this.smash(t);
+      } else if ((t.low && this.hop > 18) || this.hop > 70) {
         if (!t.cleared) {
           t.cleared = true;
           addScore(this, 50);
-          popup(this, t.x, t.y - 50, 'NICE HOP +50', '#ffffff');
+          popup(this, t.x, t.y - 50, t.low ? 'NICE HOP +50' : 'SOARING +50', '#ffffff');
         }
       } else if (!t.cleared && this.rig.hurt <= 0) {
         this.hit(t);
       }
     }
+
+    if (this.lion) this.updateLion(s);
+    if (this.pack) this.updatePack(s);
 
     if (this.finishLine && !this.done) {
       this.finishLine.forEach(function(o) { o.x -= move; });
@@ -302,6 +572,7 @@ export class Level3Scene extends Phaser.Scene {
 
   finish() {
     this.done = true;
+    this.turbo = 0;
     var bonus = this.lives * 500;
     addScore(this, bonus);
     this.tweens.add({ targets: this, hop: 60, duration: 300, yoyo: true });
