@@ -11,7 +11,7 @@ import {
 // The cookies are a trap. Do NOT eat the cookies. Grab hearts instead.
 // Specials: RAMPS launch you into big air over everything; the TURBO bolt
 // (Mark's comically large water bottle) gives a few seconds of top speed where you smash straight through obstacles.
-// Set pieces: the lion dance parades through the park, and later the cycling
+// Set pieces: a peloton weaves across the lanes, and later the cycling
 // club blows past from behind ("ON YOUR LEFT!") — pick the lane they leave open.
 
 var LANES = [392, 434, 476];
@@ -19,9 +19,8 @@ var PX_ = 180;
 var GOAL = 20000;
 var TURBO_MS = 4500;
 var AIR_V = 760, AIR_G = 1100;   // ramp launch: ~260px peak, ~1.4s airtime
-var LION_AT = 0.3;
+var PELOTON_AT = 0.3;
 var PACK_AT = 0.72;
-var JERSEYS = [0x7a3cff, 0x2bb5a8, 0xffb000, 0x3f7a3a, 0x4a7bd8, 0xff9ec7];
 
 export class Level3Scene extends Phaser.Scene {
   constructor() { super('Level3'); }
@@ -46,8 +45,8 @@ export class Level3Scene extends Phaser.Scene {
     this.air = false;
     this.nextSpecial = 2200;
     this.specialN = 0;
-    this.lion = null;
-    this.lionDone = this.dist > GOAL * LION_AT;
+    this.peloton = null;
+    this.pelotonDone = this.dist > GOAL * PELOTON_AT;
     this.pack = null;
     this.packDone = this.dist > GOAL * PACK_AT;
   }
@@ -148,23 +147,23 @@ export class Level3Scene extends Phaser.Scene {
   // You can't be hurt while on TURBO, flying off a ramp, or still blinking from a hit
   safe() { return this.done || this.dead || this.turbo > 0 || this.hop > 70 || this.rig.hurt > 0; }
 
-  // ── Lion dance: head picks a lane (with a warning), the body follows its path ──
-  startLion() {
-    var self = this;
-    this.lionDone = true;
-    banner(this, 'LION DANCE!', '#ffe066', 'STAY OUT OF ITS LANE');
-    var head = this.add.image(GAME_WIDTH + 80, LANES[1], 'lionhead').setOrigin(0.5, 1).setScale(2).setFlipX(true);
-    var segs = [];
-    for (var i = 0; i < 5; i++) {
-      segs.push(this.add.sprite(GAME_WIDTH + 160 + i * 64, LANES[1], 'lionbody').setOrigin(0.5, 1).setScale(2).play('lion-walk'));
+  // ── The peloton: a line of cyclists weaving across the lanes. The leader picks a lane
+  // (with a warning), the rest follow its path. Hop the riders behind the leader; never the leader.
+  startPeloton() {
+    this.pelotonDone = true;
+    banner(this, 'PELOTON!', '#ffe066', 'THEY WEAVE - STAY OUT OF THEIR LANE');
+    var riders = [];
+    for (var i = 0; i < 6; i++) {
+      riders.push(this.add.sprite(GAME_WIDTH + 80 + i * 70, LANES[1], 'cyclist', i % 3).setOrigin(0.5, 1));
     }
-    this.lion = { head: head, segs: segs, lane: 1, laneY: LANES[1], t: 0, next: 1.4, hist: [], x: GAME_WIDTH + 80 };
-    this.time.addEvent({ delay: 300, repeat: 20, callback: function() { if (self.lion) playSound('stomp'); } });
+    this.peloton = { riders: riders, lane: 1, laneY: LANES[1], t: 0, next: 1.4, hist: [], x: GAME_WIDTH + 80 };
+    playSound('select');
   }
 
-  updateLion(s) {
-    var L = this.lion;
+  updatePeloton(s) {
+    var L = this.peloton;
     L.t += s;
+    // you're catching up to them: they drift back across the screen while weaving
     L.x -= (L.t < 2.2 ? 140 : 75) * s;
     L.next -= s;
     if (L.next <= 0 && L.x < GAME_WIDTH - 60) {
@@ -176,33 +175,30 @@ export class Level3Scene extends Phaser.Scene {
     L.laneY += (LANES[L.lane] - L.laneY) * Math.min(1, s * 3);
     L.hist.unshift(L.laneY);
     if (L.hist.length > 200) L.hist.pop();
-    L.head.setPosition(L.x, L.laneY + Math.sin(L.t * 9) * 4).setDepth(this.depthFor(L.laneY) + 1);
-    L.head.rotation = Math.sin(L.t * 6) * 0.08;
-    var hits = [{ x: L.x, y: L.laneY, w: 70, body: false }];
-    for (var i = 0; i < L.segs.length; i++) {
-      var sy = L.hist[Math.min(L.hist.length - 1, (i + 1) * 9)];
-      var sx = L.x + 70 + i * 62;
-      L.segs[i].setPosition(sx, sy + Math.sin(L.t * 9 - (i + 1) * 0.8) * 4).setDepth(this.depthFor(sy));
-      hits.push({ x: sx, y: sy, w: 56, body: true });
+    var hits = [];
+    for (var i = 0; i < L.riders.length; i++) {
+      var ry = i === 0 ? L.laneY : L.hist[Math.min(L.hist.length - 1, i * 9)];
+      var rx = L.x + i * 70;
+      L.riders[i].setPosition(rx, ry + Math.sin(L.t * 9 - i * 0.8) * 1.5).setDepth(this.depthFor(ry) + 1);
+      L.riders[i].rotation = (ry - (L.hist[Math.min(L.hist.length - 1, i * 9 + 4)] || ry)) * -0.01;
+      hits.push({ x: rx, y: ry, w: 70, lead: i === 0 });
     }
-    // the head always hurts; the body can be hopped
     if (!this.safe()) {
       for (var h = 0; h < hits.length; h++) {
         var c = hits[h];
         if (Math.abs(c.y - this.laneY) < 20 && Math.abs(c.x - PX_) < (c.w + 24) / 2) {
-          if (c.body && this.hop > 46) continue;
-          this.hit({ kind: 'lion' });
+          if (!c.lead && this.hop > 46) continue;
+          this.hit({ kind: 'cyclist' });
           break;
         }
       }
     }
-    if (L.x + 70 + L.segs.length * 62 < -40) {
-      L.head.destroy();
-      L.segs.forEach(function(sg) { sg.destroy(); });
-      this.lion = null;
+    if (L.x + L.riders.length * 70 < -40) {
+      L.riders.forEach(function(r) { r.destroy(); });
+      this.peloton = null;
       if (!this.done) {
         addScore(this, 1000);
-        popup(this, GAME_WIDTH / 2, 160, 'LION DANCE CLEARED! +1000', '#ffe066');
+        popup(this, GAME_WIDTH / 2, 160, 'PASSED THE PELOTON! +1000', '#ffe066');
         burst(this, GAME_WIDTH / 2, 180, 0xffe066, 24);
         playSound('clear');
       }
@@ -220,23 +216,7 @@ export class Level3Scene extends Phaser.Scene {
 
   makeCyclist(lane, x, jersey) {
     var c = this.add.container(x, LANES[lane]).setDepth(5 + lane * 3 + 1);
-    var axle = -17;
-    var wb = this.add.sprite(-24, axle, 'wheel').play('wheel-spin');
-    var wf = this.add.sprite(24, axle, 'wheel').play('wheel-spin');
-    var fr = this.add.image(0, axle, 'bikeframe').setOrigin(0.5, 39 / 40);
-    var g = this.add.graphics();
-    var skin = [0x8a5a3c, 0xc8936a, 0x6b4430, 0xe0b48a][Phaser.Math.Between(0, 3)];
-    g.lineStyle(6, 0x2a2430).lineBetween(-6, -46, 2, -28).lineBetween(2, -28, -2, -18);   // legs
-    g.lineStyle(5, skin).lineBetween(-2, -24, -2, -18);
-    g.fillStyle(0x2a2430).fillRect(-12, -52, 14, 9);                                      // shorts
-    g.lineStyle(11, jersey).lineBetween(-6, -52, 12, -66);                                 // jersey, leaning in
-    g.lineStyle(2, 0xffffff).lineBetween(-4, -56, 10, -66);
-    g.lineStyle(4, skin).lineBetween(12, -64, 22, -48);                                    // arm to the bars
-    g.fillStyle(skin).fillCircle(18, -74, 7);                                              // head
-    g.fillStyle(jersey).fillEllipse(17, -79, 18, 9);                                       // helmet
-    g.lineStyle(1, 0x1a1020).strokeEllipse(17, -79, 18, 9);
-    g.fillStyle(0x1a1020).fillRect(19, -76, 6, 3);                                         // shades
-    c.add([wb, wf, fr, g]);
+    c.add(this.add.sprite(0, 0, 'cyclist', jersey).setOrigin(0.5, 1));
     return { spr: c, lane: lane, x: x };
   }
 
@@ -252,7 +232,7 @@ export class Level3Scene extends Phaser.Scene {
         if (!self.pack) return;
         lanes.forEach(function(l, k) {
           for (var n = 0; n < 2; n++) {
-            var r = self.makeCyclist(l, -60 - n * 90 - k * 40, JERSEYS[(P.rows * 2 + k + n) % JERSEYS.length]);
+            var r = self.makeCyclist(l, -60 - n * 90 - k * 40, (P.rows * 2 + k + n) % 3);
             self.pack.riders.push(r);
           }
         });
@@ -351,9 +331,9 @@ export class Level3Scene extends Phaser.Scene {
         this.turbo -= dt;
         if (this.turbo <= 0) popup(this, PX_, this.laneY - 110, 'TURBO OVER', '#ffffff');
       }
-      if (!this.lionDone && this.dist > GOAL * LION_AT) this.startLion();
+      if (!this.pelotonDone && this.dist > GOAL * PELOTON_AT) this.startPeloton();
       if (!this.packDone && this.dist > GOAL * PACK_AT) this.startPack();
-      var setPiece = this.lion || this.pack;
+      var setPiece = this.peloton || this.pack;
       if (!setPiece) this.nextSpecial -= this.speed * s;
       if (this.nextSpecial <= 0 && this.dist < GOAL - 1800) { this.spawnSpecial(); this.nextSpecial = 2600; }
       this.dist += this.speed * s;
@@ -496,7 +476,7 @@ export class Level3Scene extends Phaser.Scene {
       }
     }
 
-    if (this.lion) this.updateLion(s);
+    if (this.peloton) this.updatePeloton(s);
     if (this.pack) this.updatePack(s);
 
     if (this.finishLine && !this.done) {

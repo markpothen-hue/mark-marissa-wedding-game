@@ -17,6 +17,15 @@ function App() {
     window.addEventListener('keydown', function(e) { if (e.key === 'm' || e.key === 'M') { toggleMute(); paint(); } });
     gameRef.current = new Phaser.Game(gameConfig);
     window.__game = gameRef.current;
+    // Phones held upright: the rotate overlay covers the game (CSS), and the game pauses until it's turned
+    var portrait = window.matchMedia('(orientation: portrait)');
+    var syncOrientation = function() {
+      var g = gameRef.current;
+      if (!g || !g.loop || !document.body.classList.contains('touch')) return;
+      if (portrait.matches) g.loop.sleep(); else g.loop.wake();
+    };
+    portrait.addEventListener('change', syncOrientation);
+    setTimeout(syncOrientation, 0);
     return function() {
       if (gameRef.current) {
         gameRef.current.destroy(true);
@@ -30,6 +39,11 @@ function App() {
       <div id="game-container" />
       <div id="pad" />
       <button id="mute" type="button" />
+      <div id="rotate">
+        <div className="phone" />
+        <p>TURN YOUR PHONE SIDEWAYS</p>
+        <p className="small">THE ADVENTURE PLAYS BEST IN LANDSCAPE</p>
+      </div>
     </div>
   );
 }

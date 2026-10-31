@@ -79,3 +79,21 @@ body.touch #pad {
 @media (orientation: landscape) {
   body.touch #mute { right: auto; left: 50%; transform: translateX(-50%); }
 }
+
+/* Phones held upright: ask them to turn it sideways */
+#rotate { display: none; }
+@media (orientation: portrait) {
+  body.touch #rotate {
+    display: flex; position: fixed; inset: 0; z-index: 50;
+    flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px;
+    background: #1a1020; color: #ffe066; text-align: center;
+    font: 14px/1.8 "Press Start 2P", monospace;
+  }
+  #rotate .small { font-size: 8px; color: #d9b3ff; }
+  #rotate .phone {
+    width: 56px; height: 96px; border: 5px solid #ffe066; border-radius: 12px; position: relative;
+    animation: turn 2s ease-in-out infinite;
+  }
+  #rotate .phone::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #ffe066; }
+}
+@keyframes turn { 0%, 25% { transform: rotate(0deg); } 55%, 100% { transform: rotate(-90deg); } }

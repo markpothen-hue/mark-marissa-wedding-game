@@ -156,16 +156,16 @@ export class Level1Scene extends Phaser.Scene {
     SQUIRRELS.forEach(function(s) {
       var e = self.enemies.create(s[0], GY - 20, 'squirrel-run').play('squirrel-run');
       e.kind = 'squirrel'; e.minX = s[1]; e.maxX = s[2]; e.speed = 70;
-      e.body.setSize(36, 30).setOffset(8, 6);
+      e.body.setSize(44, 34).setOffset(12, 18);
       e.setVelocityX(-e.speed).setDepth(5);
     });
 
     // Squirrels on ledges that lob acorns at you
     this.acorns = this.physics.add.group();
     THROWERS.forEach(function(t) {
-      var e = self.enemies.create(t[0], t[1] - 18, 'squirrel-run', 0);
+      var e = self.enemies.create(t[0], t[1] - 26, 'squirrel-run', 2);
       e.kind = 'thrower'; e.body.setAllowGravity(false).setImmovable(true);
-      e.body.setSize(36, 30).setOffset(8, 6);
+      e.body.setSize(44, 34).setOffset(12, 18);
       e.setDepth(5); e.throwT = 1200;
     });
 
@@ -201,6 +201,16 @@ export class Level1Scene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(2);
     this.tweens.add({ targets: sign, alpha: 0.55, duration: 140, yoyo: true, repeat: -1, repeatDelay: 1800 });
     this.add.rectangle(FLAG_X + 160, GY, 50, 100, 0x2a1810).setOrigin(0, 1).setStrokeStyle(3, 0xffe066).setDepth(1);
+
+    // First date: whoever you're NOT playing is waiting outside the Blue Angel
+    this.date = this.add.sprite(FLAG_X + 232, GY, 'hero', gameState.char === 'mark' ? 1 : 0).setOrigin(0.5, 1).setScale(0.75).setFlipX(true).setDepth(4);
+    this.tweens.add({ targets: this.date, y: GY - 3, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.waved = false;
+    // street sign at the start
+    this.add.rectangle(230, GY - 120, 6, 120, 0x3a3a48).setOrigin(0.5, 0).setDepth(1);
+    this.add.rectangle(230, GY - 128, 132, 24, 0x2a7a3a).setStrokeStyle(2, 0xffffff).setDepth(1);
+    this.add.text(230, GY - 128, 'BLUE ANGEL >', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }).setOrigin(0.5).setDepth(1);
+    this.add.text(230, GY - 106, 'FIRST DATE TONIGHT', { fontFamily: FONT, fontSize: '6px', color: '#ffe066', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(1);
 
     // Player: invisible physics body + the rig that draws the hero
     this.body = this.physics.add.image(this.spawnX, GY - 60, null).setVisible(false);
@@ -344,6 +354,16 @@ export class Level1Scene extends Phaser.Scene {
 
     // Fell in the river
     if (this.body.y > GAME_HEIGHT + 40) this.hurt(true);
+
+    // your date spots you coming
+    if (!this.waved && this.body.x > FLAG_X - 420) {
+      this.waved = true;
+      var bub = this.add.text(this.date.x, GY - 96, 'OVER HERE!', {
+        fontFamily: FONT, fontSize: '8px', color: '#1a1020', backgroundColor: '#ffffff', padding: { x: 5, y: 4 },
+      }).setOrigin(0.5).setDepth(40);
+      this.tweens.add({ targets: this.date, angle: 8, duration: 160, yoyo: true, repeat: 7 });
+      this.time.delayedCall(2600, function() { bub.destroy(); });
+    }
 
     // Flag
     if (this.body.x > FLAG_X - 10) this.reachFlag();
@@ -587,7 +607,7 @@ export class Level1Scene extends Phaser.Scene {
       }
       if ((pg.state === 'dive' || pg.state === 'leave') && !this.done && !this.dead) {
         var b = this.body.body;
-        if (rectsHit(this.body.x, this.body.y, 30, 66, s.x, s.y, 18, 12)) {
+        if (rectsHit(this.body.x, this.body.y, 30, 66, s.x, s.y, 24, 18)) {
           if ((b.velocity.y > 50 && b.bottom < s.y + 6) || this.strong()) {
             this.stompScore(s.x, s.y, 200);
             if (pg.shadow) pg.shadow.destroy();
@@ -671,7 +691,15 @@ export class Level1Scene extends Phaser.Scene {
     this.tweens.add({
       targets: this.body, y: GY - 35, x: FLAG_X + 12, duration: 700, ease: 'Quad.easeIn',
       onComplete: function() {
-        self.tweens.add({ targets: self.body, x: FLAG_X + 185, duration: 900 });
+        self.tweens.add({ targets: self.body, x: FLAG_X + 192, duration: 900, onComplete: function() {
+          // they meet at the door
+          self.rig.facing = 1;
+          var h = self.add.image(FLAG_X + 212, GY - 90, 'heart').setDepth(45).setScale(0.3);
+          self.tweens.add({ targets: h, scale: 2, y: GY - 120, duration: 600, ease: 'Back.easeOut' });
+          popup(self, FLAG_X + 212, GY - 150, "IT'S A DATE!", '#ff9ec7');
+          burst(self, FLAG_X + 212, GY - 90, 0xff9ec7, 20);
+          playSound('coin');
+        } });
         for (var i = 0; i < 5; i++) {
           self.time.delayedCall(i * 220, function() {
             var fx = FLAG_X + Phaser.Math.Between(-60, 260), fy = Phaser.Math.Between(80, 220);
@@ -682,7 +710,7 @@ export class Level1Scene extends Phaser.Scene {
       },
     });
     banner(this, 'BLUE ANGEL!', '#9cc4ff', 'LIVES BONUS +' + lifeBonus);
-    finishLevel(this, 0, this.score, this.lives);
+    this.time.delayedCall(1500, function() { finishLevel(self, 0, self.score, self.lives); });
   }
 }
 

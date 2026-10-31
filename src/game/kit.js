@@ -18,7 +18,7 @@ var PX = [
 var STRIPS = {
   wheel: [34, 34], carpet: [76, 20], puff: [18, 18], spark: [14, 14],
   'mark-poses': [70, 80], 'marissa-poses': [82, 80],
-  'squirrel-run': [52, 36], 'raccoon-run': [44, 36], pigeon: [32, 24], lionbody: [36, 26],
+  'squirrel-run': [68, 52], 'raccoon-run': [44, 36], pigeon: [52, 52], cyclist: [100, 96], lionbody: [36, 26],
   'goose': [80, 80], 'balloon-boss': [160, 200], cast: [80, 104], hero: [80, 104], clergy: [68, 96], couple: [112, 100],
 };
 
@@ -41,7 +41,7 @@ export function setupPx(scene) {
   a.create({ key: 'raccoon-run', frames: a.generateFrameNumbers('raccoon-run', { start: 0, end: 1 }), frameRate: 7, repeat: -1 });
   a.create({ key: 'goose-flap', frames: a.generateFrameNumbers('goose', { start: 0, end: 1 }), frameRate: 6, repeat: -1 });
   a.create({ key: 'boss-bob', frames: a.generateFrameNumbers('balloon-boss', { start: 0, end: 1 }), frameRate: 3, repeat: -1 });
-  a.create({ key: 'pigeon-flap', frames: a.generateFrameNumbers('pigeon', { start: 0, end: 1 }), frameRate: 10, repeat: -1 });
+  a.create({ key: 'pigeon-flap', frames: a.generateFrameNumbers('pigeon', { start: 2, end: 3 }), frameRate: 10, repeat: -1 });
   a.create({ key: 'lion-walk', frames: a.generateFrameNumbers('lionbody', { start: 0, end: 1 }), frameRate: 6, repeat: -1 });
   a.create({ key: 'spark', frames: a.generateFrameNumbers('spark', { start: 0, end: 2 }), frameRate: 18, yoyo: true, hideOnComplete: true });
 }

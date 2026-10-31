@@ -789,6 +789,36 @@ if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
         row = [y for y in range(h) if al.getpixel((cx, y))]
         bt = bt.crop((min(col) - 2, min(row) - 2, max(col) + 3, max(row) + 3))
         save(shrink(bt, 30 / bt.height), 'bottle')
+    # Gemini critters (art/critters): squirrel [run, run, throw], pigeon [perch, coo, wings up, wings down],
+    # Central Park cyclists [violet, teal, gold]. One shared scale per critter so frames line up; some art is mirrored to face left.
+    CRIT = os.path.join(ROOT, 'art', 'critters')
+    def key_all(im):
+        # also clear magenta trapped inside shapes (bike wheels between the spokes)
+        px = im.load()
+        for y in range(im.height):
+            for x in range(im.width):
+                r, g, b, a = px[x, y]
+                if a and r > 150 and b > 100 and g < 90 and b - g > 70:
+                    px[x, y] = (0, 0, 0, 0)
+        return im
+    def group(names, h, fw, fh, mirror=(), enclosed=False):
+        ims = [key_magenta(os.path.join(CRIT, n + '.png')) for n in names]
+        if enclosed: ims = [key_all(im) for im in ims]
+        ims = [im.transpose(Image.FLIP_LEFT_RIGHT) if n in mirror else im for n, im in zip(names, ims)]
+        bb = ims[0].getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
+        k = h / (bb[3] - bb[1])
+        out = []
+        for im in ims:
+            f = shrink(im, k)
+            f.thumbnail((fw, fh), Image.NEAREST)
+            c = Image.new('RGBA', (fw, fh), (0, 0, 0, 0))
+            c.paste(f, ((fw - f.width) // 2, fh - f.height))
+            out.append(c)
+        return out
+    if os.path.exists(os.path.join(CRIT, 'squirrel-run1.png')):
+        strip_save(group(['squirrel-run1', 'squirrel-run2', 'squirrel-throw'], 21, 34, 26, mirror=('squirrel-throw',)), 'squirrel-run')
+        strip_save(group(['pigeon-perch', 'pigeon-coo', 'pigeon-up', 'pigeon-down'], 18, 26, 26, mirror=('pigeon-down',)), 'pigeon')
+        strip_save(group(['cyclist-violet', 'cyclist-teal', 'cyclist-gold'], 46, 50, 48, enclosed=True), 'cyclist')
     pr = key_magenta(os.path.join(FAM_DIR, 'priest.png'))
     bb = pr.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
     save(shrink(pr, 40 / (bb[3] - bb[1])), 'priest')
