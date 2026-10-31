@@ -782,6 +782,15 @@ if all(os.path.exists(os.path.join(FAM_DIR, n + '.png')) for n, _ in CAST):
             c.paste(f, ((CFW - f.width) // 2, CFH - f.height))
             poses[pi].append(c)
     strip_save(poses[0] + poses[1] + poses[2], 'cast')
+    heroes = []
+    for n, h in (('hero-mark', 41), ('hero-marissa', 39)):
+        im = key_magenta(os.path.join(FAM_DIR, n + '.png'))
+        bb = im.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
+        f = shrink(im, h / (bb[3] - bb[1]))
+        c = Image.new('RGBA', (CFW, CFH), (0, 0, 0, 0))
+        c.paste(f, ((CFW - f.width) // 2, CFH - f.height))
+        heroes.append(c)
+    strip_save(heroes, 'hero')
     pr = key_magenta(os.path.join(FAM_DIR, 'priest.png'))
     bb = pr.getchannel('A').point(lambda a: 255 if a > 40 else 0).getbbox()
     save(shrink(pr, 40 / (bb[3] - bb[1])), 'priest')

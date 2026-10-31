@@ -3,8 +3,9 @@ import { playMusic, playSound } from '../audio';
 import { FONT, setPad, spark } from '../kit';
 import { gameState } from '../state';
 
-// THE END: the reception. A little speech, then everyone does the same goofy
-// synchronized dance around the cake (Fantastic Mr. Fox style).
+// THE END (final screen): the reception. Everyone does the same goofy synchronized
+// dance around the cake (Fantastic Mr. Fox style) while the couple says thank you.
+// The dance never stops; only the small PLAY AGAIN button leaves.
 var FLOOR = 462;
 // 'cast' strip: frame = pose * 9 + person; poses 0 stand, 1 arms up, 2 fist pump
 var CAST = { AARON: 0, AMMA: 1, APPA: 2, LUKE: 3, DADA: 4, MAMA: 5, RUTH: 6, MARK: 7, MARISSA: 8 };
@@ -25,7 +26,7 @@ export class AllClearScene extends Phaser.Scene {
   create() {
     var self = this;
     var W = this.scale.width, H = this.scale.height;
-    setPad('hint', { text: 'TAP TO CONTINUE' });
+    setPad('hint', { text: 'TAP TO SKIP' });
     this.cameras.main.fadeIn(800);
     this.add.image(W / 2, H / 2, 'bg-ending').setDisplaySize(W, H);
 
@@ -42,22 +43,21 @@ export class AllClearScene extends Phaser.Scene {
 
     // everyone in a line, name tags in the fog
     this.people = {};
-    LINEUP.forEach(function(p, i) {
+    LINEUP.forEach(function(p) {
       var s = self.add.sprite(p[1], FLOOR, 'cast', CAST[p[0]]).setOrigin(0.5, 1).setDepth(5);
       if (p[1] > 400) s.setFlipX(true);
       self.add.text(p[1], FLOOR + 14, p[0], { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#5a3a2a', strokeThickness: 3 }).setOrigin(0.5).setDepth(6);
-      // gentle idle sway until the dance starts
-      self.tweens.add({ targets: s, scaleY: 0.97, duration: 600 + i * 30, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       self.people[p[0]] = s;
     });
 
     this.bubble = this.add.container(0, 0).setDepth(20).setVisible(false);
     this.line = -1;
     this.dancing = false;
-    var advance = function() { if (!self.dancing) self.nextLine(); else if (self.canRestart) self.restart(); };
+    var advance = function() { if (!self.speechDone) self.nextLine(); };
     this.input.on('pointerdown', advance);
     this.input.keyboard.on('keydown', advance);
-    this.time.delayedCall(1200, function() { self.nextLine(); });
+    this.startDance();
+    this.time.delayedCall(1800, function() { self.nextLine(); });
   }
 
   // ── Speech bubbles ──
@@ -66,7 +66,7 @@ export class AllClearScene extends Phaser.Scene {
     if (this.typing) { this.typing.remove(); this.typing = null; this.bubbleText.setText(this.fullText); this.queueNext(); return; }
     if (this.autoNext) { this.autoNext.remove(); this.autoNext = null; }
     this.line++;
-    if (this.line >= SPEECH.length) { this.bubble.setVisible(false); this.startDance(); return; }
+    if (this.line >= SPEECH.length) { this.bubble.setVisible(false); this.speechDone = true; this.endCard(); return; }
     var who = SPEECH[this.line][0], text = SPEECH[this.line][1];
     var sp = this.people[who];
     this.bubble.removeAll(true);
@@ -84,8 +84,6 @@ export class AllClearScene extends Phaser.Scene {
     var name = this.add.text(x - bw / 2 + 12, y - bh / 2 - 4, who, { fontFamily: FONT, fontSize: '8px', color: '#ffffff', backgroundColor: '#7a3a5a', padding: { x: 5, y: 4 } }).setOrigin(0, 1);
     this.bubble.add([g, t, name]).setVisible(true);
     this.bubbleText = t; this.fullText = text;
-    // the speaker bounces a little while they talk
-    this.tweens.add({ targets: sp, y: FLOOR - 8, duration: 140, yoyo: true, repeat: 2 });
     var n = 0;
     this.typing = this.time.addEvent({ delay: 38, repeat: text.length - 1, callback: function() {
       n++; t.setText(text.slice(0, n));
@@ -106,7 +104,6 @@ export class AllClearScene extends Phaser.Scene {
     playMusic('title');
     playSound('clear');
     var names = Object.keys(this.people);
-    names.forEach(function(k) { self.tweens.killTweensOf(self.people[k]); self.people[k].setScale(1); });
     var beat = 0;
     this.time.addEvent({ delay: 360, loop: true, callback: function() {
       var pose = STEPS[beat % 8];
@@ -132,19 +129,24 @@ export class AllClearScene extends Phaser.Scene {
         duration: Phaser.Math.Between(3000, 6000), delay: Phaser.Math.Between(0, 2500), repeat: -1 });
     }
 
-    // the end card
+  }
+
+  // ── The thank-you card, after the speech ──
+  endCard() {
+    var self = this;
     var panel = this.add.rectangle(400, 52, 560, 92, 0xfff6ec, 0.9).setStrokeStyle(3, 0x7a3a5a).setDepth(18).setAlpha(0);
     var t1 = this.add.text(400, 36, 'THANK YOU FOR\nCELEBRATING WITH US!', { fontFamily: FONT, fontSize: '15px', color: '#7a3a5a', align: 'center', lineSpacing: 6 }).setOrigin(0.5).setDepth(19).setAlpha(0);
     var t2 = this.add.text(400, 84, 'LOVE, MARK & MARISSA', { fontFamily: FONT, fontSize: '9px', color: '#3f7a3a' }).setOrigin(0.5).setDepth(19).setAlpha(0);
-    this.tweens.add({ targets: [panel, t1, t2], alpha: 1, duration: 800, delay: 1500 });
+    this.tweens.add({ targets: [panel, t1, t2], alpha: 1, duration: 800, delay: 300 });
     var who = gameState.name ? gameState.name + "'S" : 'YOUR';
     var sc = this.add.text(400, 112, who + ' SCORE: ' + gameState.coins, { fontFamily: FONT, fontSize: '9px', color: '#ffffff', stroke: '#5a3a2a', strokeThickness: 4 }).setOrigin(0.5).setDepth(19).setAlpha(0);
-    this.tweens.add({ targets: sc, alpha: 1, duration: 600, delay: 2600 });
-    this.time.delayedCall(5000, function() {
-      self.canRestart = true;
-      setPad('hint', { text: 'TAP TO PLAY AGAIN' });
-      var again = self.add.text(400, 132, 'TAP TO PLAY AGAIN', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#5a3a2a', strokeThickness: 3 }).setOrigin(0.5).setDepth(19);
-      self.tweens.add({ targets: again, alpha: 0.3, duration: 500, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: sc, alpha: 1, duration: 600, delay: 1200 });
+    setPad('hint', { text: 'THANK YOU FOR PLAYING!' });
+    // small corner button: the dance keeps going until someone actually wants to replay
+    this.time.delayedCall(4000, function() {
+      var again = self.add.text(12, 492, 'PLAY AGAIN', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', backgroundColor: '#7a3a5a', padding: { x: 6, y: 5 } })
+        .setOrigin(0, 1).setDepth(19).setInteractive({ useHandCursor: true });
+      again.on('pointerdown', function(p, x, y, e) { e.stopPropagation(); self.restart(); });
     });
   }
 

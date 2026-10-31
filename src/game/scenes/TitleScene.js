@@ -24,15 +24,15 @@ export class TitleScene extends Phaser.Scene {
     overlay.fillRect(0, 0, width, height);
 
     // Characters on screen
-    var markSpr = this.add.image(cx - 60, height - 130, 'mark').setScale(0.9);
-    var marSpr = this.add.image(cx + 60, height - 130, 'marissa').setScale(0.9);
+    var markSpr = this.add.sprite(cx - 62, height - 44, 'hero', 0).setOrigin(0.5, 1).setScale(1.5);
+    var marSpr = this.add.sprite(cx + 62, height - 44, 'hero', 1).setOrigin(0.5, 1).setScale(1.5);
     this.tweens.add({
       targets: [markSpr, marSpr],
       y: '-=6', duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
     });
 
     // Heart between them
-    var heartImg = this.add.image(cx, height - 135, 'heart').setScale(1.5);
+    var heartImg = this.add.image(cx, height - 150, 'heart').setScale(1.5);
     this.tweens.add({
       targets: heartImg,
       scale: 1.8, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'

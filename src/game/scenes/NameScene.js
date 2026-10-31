@@ -41,10 +41,10 @@ export class NameScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Character preview
-    this.add.image(cx, 200, gameState.char).setScale(1);
+    this.add.sprite(cx, 252, 'hero', gameState.char === 'mark' ? 0 : 1).setOrigin(0.5, 1).setScale(1.1);
 
-    this.add.text(cx, 260, 'Playing as ' + (gameState.char === 'mark' ? 'MARK' : 'MARISSA'), {
-      fontFamily: FONT, fontSize: '8px', color: '#aaaaaa',
+    this.add.text(cx, 268, 'Playing as ' + (gameState.char === 'mark' ? 'MARK' : 'MARISSA'), {
+      fontFamily: FONT, fontSize: '8px', color: '#dddddd',
     }).setOrigin(0.5);
 
     // Go button

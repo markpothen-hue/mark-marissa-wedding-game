@@ -51,7 +51,7 @@ export class GetReadyScene extends Phaser.Scene {
 
     // Level number
     this.add.text(cx, cy - 80, 'LEVEL ' + (idx + 1), {
-      fontFamily: FONT, fontSize: '9px', color: '#aaaaaa',
+      fontFamily: FONT, fontSize: '9px', color: '#dddddd',
     }).setOrigin(0.5);
 
     // Level name
@@ -66,12 +66,13 @@ export class GetReadyScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Character
-    this.add.image(cx, cy + 30, gameState.char).setScale(1);
+    var hero = this.add.sprite(cx, cy + 60, 'hero', gameState.char === 'mark' ? 0 : 1).setOrigin(0.5, 1).setScale(0.9);
+    this.tweens.add({ targets: hero, y: cy + 54, duration: 300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // GET READY
     var readyText = this.add.text(cx, cy + 80, 'GET READY!', {
       fontFamily: FONT, fontSize: '18px',
-      color: '#ff4444', stroke: '#000000', strokeThickness: 5,
+      color: '#ffe066', stroke: '#000000', strokeThickness: 5,
     }).setOrigin(0.5).setScale(0.5);
 
     this.tweens.add({
@@ -83,7 +84,7 @@ export class GetReadyScene extends Phaser.Scene {
       hold: 600,
       onComplete: function() {
         readyText.setText('GO!');
-        readyText.setColor('#44ff44');
+        readyText.setColor('#9be37a');
         readyText.setScale(0.5);
         self.tweens.add({
           targets: readyText,

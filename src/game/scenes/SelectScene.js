@@ -36,48 +36,46 @@ export class SelectScene extends Phaser.Scene {
     line.lineStyle(2, 0xffd700, 0.3);
     line.lineBetween(cx, 60, cx, height - 40);
 
-    this.add.text(cx, height * 0.45, 'VS', {
-      fontFamily: FONT, fontSize: '18px',
-      color: '#ff4444', stroke: '#000000', strokeThickness: 4,
-    }).setOrigin(0.5);
+    var vs = this.add.image(cx, height * 0.4, 'heart').setScale(2);
+    this.tweens.add({ targets: vs, scale: 2.4, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // Mark side
     var mX = width * 0.25;
-    var markSpr = this.add.image(mX, height * 0.38, 'mark').setScale(1);
+    var markSpr = this.add.sprite(mX, height * 0.54, 'hero', 0).setOrigin(0.5, 1).setScale(1.7);
     this.tweens.add({
-      targets: markSpr, y: '+=5', duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+      targets: markSpr, y: '-=6', duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
     });
-    this.add.text(mX, height * 0.56, 'MARK', {
+    this.add.text(mX, height * 0.6, 'MARK', {
       fontFamily: FONT, fontSize: '10px', color: '#ffffff',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5);
-    this.add.text(mX, height * 0.63, 'The Groom', {
+    this.add.text(mX, height * 0.67, 'The Groom', {
       fontFamily: FONT, fontSize: '8px', color: '#aaaaaa',
     }).setOrigin(0.5);
-    this.add.text(mX, height * 0.70, 'SPEED BOOST', {
+    this.add.text(mX, height * 0.74, 'SPEED BOOST', {
       fontFamily: FONT, fontSize: '8px', color: '#ffdd44',
     }).setOrigin(0.5);
 
     // Marissa side
     var maX = width * 0.75;
-    var marSpr = this.add.image(maX, height * 0.38, 'marissa').setScale(1);
+    var marSpr = this.add.sprite(maX, height * 0.54, 'hero', 1).setOrigin(0.5, 1).setScale(1.7);
     this.tweens.add({
-      targets: marSpr, y: '+=5', duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+      targets: marSpr, y: '-=6', duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
     });
-    this.add.text(maX, height * 0.56, 'MARISSA', {
+    this.add.text(maX, height * 0.6, 'MARISSA', {
       fontFamily: FONT, fontSize: '10px', color: '#ffffff',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5);
-    this.add.text(maX, height * 0.63, 'The Bride', {
+    this.add.text(maX, height * 0.67, 'The Bride', {
       fontFamily: FONT, fontSize: '8px', color: '#aaaaaa',
     }).setOrigin(0.5);
-    this.add.text(maX, height * 0.70, 'DOUBLE JUMP', {
+    this.add.text(maX, height * 0.74, 'DOUBLE JUMP', {
       fontFamily: FONT, fontSize: '8px', color: '#ffdd44',
     }).setOrigin(0.5);
 
     // Tap hint
     this.add.text(cx, height - 20, 'TAP A SIDE OR PRESS 1 / 2', {
-      fontFamily: FONT, fontSize: '8px', color: '#777777',
+      fontFamily: FONT, fontSize: '8px', color: '#dddddd',
     }).setOrigin(0.5);
 
     // Click zones
